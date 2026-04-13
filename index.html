@@ -226,7 +226,7 @@ table.t{width:100%;border-collapse:collapse;font-size:12px;min-width:480px}
       <thead><tr>
         <th>SKU / product</th>
         <th class="r">WH 240</th>
-        <th class="r">Total demand</th>
+        <th class="r">WH 240 demand</th>
         <th class="r">Amz US</th>
         <th class="r">Amz CA</th>
         <th class="r">Shopify</th>
@@ -416,34 +416,61 @@ function getAllSkus(){
   return[...set].filter(s=>Object.values(D).some(d=>(d[s]||0)>0)||WH[s]>0);
 }
 function calcAlloc(){
-  // Build FBA total lookup (avail + inbound) for AMZ channels
+  // FBA total lookup (avail + inbound) for AMZ — these are SEPARATE from WH 240
   const fbaUs={};AMZ_US.forEach(r=>fbaUs[r.sku]=r.total);
   const fbaCa={};AMZ_CA.forEach(r=>fbaCa[r.sku]=r.total);
+  // WH 240 channels only: Shopify, Chewy, Walmart, TikTok, Target+
+  const WH_CHANNELS=['shopify','chewy','walmart','tiktok','target'];
+  const AMZ_CHANNELS=['amz_us','amz_ca'];
+
   return getAllSkus().map(sku=>{
     const wh=WH[sku]||0;
-    const chDemand={};let total=0;
-    CHANNELS.forEach(c=>{const needed=Math.round((D[c.id][sku]||0)*DOS_TARGETS[c.id]);chDemand[c.id]=needed;total+=needed;});
-    if(total===0&&wh===0)return null;
-    // For allocation, AMZ channels use their own FBA pool, non-AMZ channels share WH 240
+
+    // Calculate demand per channel
+    const chDemand={};
+    CHANNELS.forEach(c=>{
+      chDemand[c.id]=Math.round((D[c.id][sku]||0)*DOS_TARGETS[c.id]);
+    });
+
+    // WH 240 total demand = only non-AMZ channels
+    const whNeed=WH_CHANNELS.reduce((s,cid)=>s+(chDemand[cid]||0),0);
+    // AMZ demands use FBA pool
     const amzUsNeed=chDemand['amz_us']||0;
     const amzCaNeed=chDemand['amz_ca']||0;
-    const amzUsAvail=fbaUs[sku]||0;
-    const amzCaAvail=fbaCa[sku]||0;
-    const whNeed=total-amzUsNeed-amzCaNeed; // WH 240 demand = all non-AMZ channels
+    const totalDemand=whNeed+amzUsNeed+amzCaNeed;
+
+    if(totalDemand===0&&wh===0)return null;
+
     const alloc={};
-    // AMZ US: covered by FBA pool
-    alloc['amz_us']=amzUsNeed>0?(amzUsAvail>=amzUsNeed?amzUsNeed:Math.round(amzUsNeed*Math.min(1,amzUsAvail/amzUsNeed))):0;
-    // AMZ CA: covered by FBA pool  
-    alloc['amz_ca']=amzCaNeed>0?(amzCaAvail>=amzCaNeed?amzCaNeed:Math.round(amzCaNeed*Math.min(1,amzCaAvail/amzCaNeed))):0;
-    // WH 240 channels: fair-share from WH 240
+
+    // AMZ US: fulfilled from FBA pool (not WH 240)
+    const amzUsAvail=fbaUs[sku]||0;
+    alloc['amz_us']=amzUsNeed>0?Math.min(amzUsNeed,amzUsAvail):0;
+
+    // AMZ CA: fulfilled from FBA pool (not WH 240)
+    const amzCaAvail=fbaCa[sku]||0;
+    alloc['amz_ca']=amzCaNeed>0?Math.min(amzCaNeed,amzCaAvail):0;
+
+    // WH 240 channels: fair-share from WH 240 pool
     const whRatio=whNeed>0?Math.min(1,wh/whNeed):1;
-    ['shopify','chewy','walmart','tiktok','target'].forEach(cid=>{
+    WH_CHANNELS.forEach(cid=>{
       alloc[cid]=Math.round((chDemand[cid]||0)*whRatio);
     });
-    // Overall coverage: weighted across all channels
+
+    // Surplus = WH 240 left after non-AMZ allocations
+    const whAllocated=WH_CHANNELS.reduce((s,cid)=>s+(alloc[cid]||0),0);
+    const whSurplus=Math.max(0,wh-whAllocated);
+
+    // Coverage: separate AMZ pct and WH pct, report WH coverage since that's what we control
+    const amzUsPct=amzUsNeed>0?Math.min(100,Math.round(amzUsAvail/amzUsNeed*100)):100;
+    const amzCaPct=amzCaNeed>0?Math.min(100,Math.round(amzCaAvail/amzCaNeed*100)):100;
+    const whPct=whNeed>0?Math.min(100,Math.round(wh/whNeed*100)):100;
+
+    // Overall pct = weighted average across all channels
     const totalAllocated=Object.values(alloc).reduce((a,b)=>a+b,0);
-    const pct=total>0?Math.min(100,Math.round(totalAllocated/total*100)):100;
-    return{sku,wh,total,alloc,pct,covered:pct>=100};
+    const pct=totalDemand>0?Math.min(100,Math.round(totalAllocated/totalDemand*100)):100;
+
+    return{sku,wh,total:totalDemand,whNeed,whSurplus,alloc,pct,whPct,amzUsPct,amzCaPct,covered:pct>=100};
   }).filter(r=>r&&(r.total>0||r.wh>0)).sort((a,b)=>b.total-a.total);
 }
 function buildAllocControls(){
@@ -464,15 +491,15 @@ function buildAllocControls(){
 function updDOS(id,val){DOS_TARGETS[id]=val;document.getElementById('dv-'+id).textContent=val+'d';renderAlloc();}
 function renderAllocSummary(){
   const totalWH=Object.values(WH).reduce((a,b)=>a+b,0);
-  const totalD=allocData.reduce((a,r)=>a+r.total,0);
+  const totalD=allocData.reduce((a,r)=>a+(r.whNeed||0),0); // WH 240 demand only (excludes FBA)
   const shortfall=Math.max(0,totalD-totalWH);
-  const gaps=allocData.filter(r=>!r.covered).length;
+  const gaps=allocData.filter(r=>(r.whPct||100)<100).length;
   const pct=totalD>0?Math.min(100,Math.round(totalWH/totalD*100)):100;
   document.getElementById('alloc-summary-cards').innerHTML=`
     <div class="mc"><div class="mc-lbl">WH 240 on hand</div><div class="mc-val" style="color:var(--blue)">${totalWH.toLocaleString()}</div><div class="mc-sub">Rawson Road 240</div></div>
-    <div class="mc"><div class="mc-lbl">Total demand</div><div class="mc-val">${totalD.toLocaleString()}</div><div class="mc-sub">all 7 channels at target DOS</div></div>
-    <div class="mc"><div class="mc-lbl">Coverage</div><div class="mc-val" style="color:${pct>=100?'var(--green)':pct>=70?'var(--amber)':'var(--red)'}">${pct}%</div><div class="mc-sub">of demand met from WH 240</div></div>
-    <div class="mc"><div class="mc-lbl">Shortfall</div><div class="mc-val" style="color:${shortfall>0?'var(--red)':'var(--green)'}">${shortfall>0?shortfall.toLocaleString():'None'}</div><div class="mc-sub">units below targets</div></div>
+    <div class="mc"><div class="mc-lbl">WH 240 demand</div><div class="mc-val">${totalD.toLocaleString()}</div><div class="mc-sub">Shopify · Chewy · WMT · TikTok · Target</div></div>
+    <div class="mc"><div class="mc-lbl">WH 240 coverage</div><div class="mc-val" style="color:${pct>=100?'var(--green)':pct>=70?'var(--amber)':'var(--red)'}">${pct}%</div><div class="mc-sub">of WH 240 demand met</div></div>
+    <div class="mc"><div class="mc-lbl">WH 240 shortfall</div><div class="mc-val" style="color:${shortfall>0?'var(--red)':'var(--green)'}">${shortfall>0?shortfall.toLocaleString():'None'}</div><div class="mc-sub">units below targets</div></div>
     <div class="mc"><div class="mc-lbl">SKUs with gaps</div><div class="mc-val" style="color:${gaps>0?'var(--amber)':'var(--green)'}">${gaps}</div><div class="mc-sub">fair-shared below target</div></div>
     <div class="mc"><div class="mc-lbl">Total surplus</div><div class="mc-val" style="color:var(--green)">${Math.max(0,totalWH-totalD).toLocaleString()}</div><div class="mc-sub">units available after all allocations</div></div>`;
   CHANNELS.forEach(c=>{
@@ -486,18 +513,28 @@ function renderAllocTable(){
   const bc=p=>p>=100?'var(--green)':p>=70?'var(--amber)':'var(--red)';
   const pill=p=>{const cl=p>=100?'dg':p>=70?'dy':'dr';return`<span class="dp ${cl}">${p}%</span>`;};
   const cell=v=>v>0?v.toLocaleString():`<span class="zero-cell">—</span>`;
-  const totalAllocated=a=>Object.values(a.alloc).reduce((s,v)=>s+v,0);
   document.getElementById('alloc-tbody').innerHTML=rows.map(r=>{
-    const allocated=totalAllocated(r);
-    const surplus=Math.max(0,r.wh-allocated);
+    const surplus=r.whSurplus||0;
     const surplusPct=r.wh>0?Math.round(surplus/r.wh*100):0;
     const surplusColor=surplus>0?'var(--green)':'var(--gray-400)';
+    // Show per-channel coverage pill: WH channels show WH pct, AMZ shows FBA pct
+    const amzUsPct=r.amzUsPct!=null?r.amzUsPct:100;
+    const amzCaPct=r.amzCaPct!=null?r.amzCaPct:100;
+    const whPct=r.whPct!=null?r.whPct:100;
+    // Coverage col: show WH 240 coverage for WH channels, note AMZ separately
+    const coveragePill=()=>{
+      const parts=[];
+      if(r.whNeed>0){const cl=whPct>=100?'dg':whPct>=70?'dy':'dr';parts.push(`<span class="dp ${cl}">WH ${whPct}%</span>`);}
+      if((r.alloc['amz_us']||0)>0||amzUsPct<100){const cl=amzUsPct>=100?'dg':amzUsPct>=70?'dy':'dr';parts.push(`<span class="dp ${cl}" style="margin-left:3px">FBA-US ${amzUsPct}%</span>`);}
+      if((r.alloc['amz_ca']||0)>0||amzCaPct<100){const cl=amzCaPct>=100?'dg':amzCaPct>=70?'dy':'dr';parts.push(`<span class="dp ${cl}" style="margin-left:3px">FBA-CA ${amzCaPct}%</span>`);}
+      return parts.join('');
+    };
     return`<tr>
     <td>${skuCell(r.sku,null)}</td>
     <td class="r" style="font-weight:600">${r.wh.toLocaleString()}</td>
-    <td class="r" style="font-weight:600">${r.total.toLocaleString()}</td>
+    <td class="r" style="font-weight:600">${r.whNeed>0?r.whNeed.toLocaleString():'—'}</td>
     ${CHANNELS.map(c=>`<td class="r">${cell(r.alloc[c.id])}</td>`).join('')}
-    <td>${pill(r.pct)}<div class="pb"><div class="pf" style="width:${Math.min(100,r.pct)}%;background:${bc(r.pct)}"></div></div></td>
+    <td style="white-space:nowrap">${coveragePill()}</td>
     <td class="r surplus-cell"><span style="font-weight:600;color:${surplusColor}">${surplus>0?'+'+surplus.toLocaleString():'—'}</span>${surplus>0?`<div class="surplus-bar"><div class="surplus-fill" style="width:${surplusPct}%"></div></div>`:''}</td>
   </tr>`;}).join('');
 }
