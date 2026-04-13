@@ -37,8 +37,7 @@ a{color:inherit;text-decoration:none}
 .content{padding:24px;max-width:1400px;margin:0 auto}
 .tab-content{display:none}.tab-content.visible{display:block}
 .sec{font-size:11px;font-weight:600;color:var(--gray-400);letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px}
-.mc-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:24px}
-@media(max-width:1100px){.mc-grid{grid-template-columns:repeat(4,1fr)}}
+.mc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
 @media(max-width:700px){.mc-grid{grid-template-columns:repeat(2,1fr)}}
 .mc{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--shadow)}
 .mc-lbl{font-size:11px;color:var(--gray-400);margin-bottom:6px;font-weight:500}
@@ -176,8 +175,6 @@ table.t{width:100%;border-collapse:collapse;font-size:12px;min-width:480px}
             <th style="color:rgba(255,255,255,.6);background:rgba(0,0,0,.2)">SKU</th>
             <th style="color:rgba(255,255,255,.6);background:rgba(0,0,0,.2)">Product name</th>
             <th class="r" style="color:rgba(255,255,255,.6);background:rgba(0,0,0,.2)">Units on hand</th>
-            <th class="r" style="color:rgba(255,255,255,.6);background:rgba(0,0,0,.2)">L30D daily (AMZ US)</th>
-            <th class="r" style="color:rgba(255,255,255,.6);background:rgba(0,0,0,.2)">Est. WH DOS</th>
             <th class="r" style="color:rgba(255,255,255,.6);background:rgba(0,0,0,.2)">Status</th>
           </tr></thead>
           <tbody id="wh-tbody"></tbody>
@@ -307,9 +304,9 @@ const CHANNELS=[
 const DOS_TARGETS={};
 CHANNELS.forEach(c=>DOS_TARGETS[c.id]=c.def);
 
-// ── WH 240 ON-HAND (prod.consolidated_inventory — Rawson Road 240) ──────
+// ── WH 240 ON-HAND — live from prod.consolidated_inventory (Rawson Road 240) ──
 const WH={};
-[['760-00518',29604],['760-00520',25327],['760-00521',21372],['760-00522',1983],['760-00523',3612],['760-00525',1039],['760-00543',3612],['730-00038',2674],['730-00039',1445],['CheeseStick_4pk',16845],['HalfPigEar_12pk',5142],['SafetyBelt_Buckle_Bl',4835],['CowKneeCaps_8pk',4327],['SlowFeed_M_O',4209],['CheeseMed_4pk',4178],['Groom_Rake_Gr',3904],['HandsFree2.0_Green',3207],['SmartBell2.0_2_1',3207],['Harness2.0_Gr_L',3051],['RetLeash2.0_Gr_Std',2769],['CheeseLarge_12pk',2151],['DoubleDogLeash_No_H_Lte',2054],['Black_SafetyBelt',2043],['Cheese_FoodTopper_6oz',1984],['CheeseMed_12pk',1913],['Martingale_MGrey',1846],['SafetyBelt_Cable80',1792],['DoubleDogLeash_W_H_Lte',1631],['CheeseStick_1Mstr',1604],['RetLeash3.0_Gr_Lite_wPD',1564],['VehicleHarness_MBlack',1341],['BullyStick_12in_THK_5',1209],['RetLeash3.0_Or_Lite_wPD',1149],['CheeseMstr_12pk',1117],['Running_leash_long',1080],['RetLeash3.0_Gr_Std_wPD',1069],['CheesePuff_12oz',1064],['CowEars_12pk',1034],['TreatBag_Black',1006],['BullyStick_6in_Curls_5',1003],['CheeseMstr_4pk',999],['SmartBell2.0_1_1',799],['CheckCord_Or_30',791],['RetLeash2.0_Or_Std',720],['ChewProof_Leash6_G',710],['LickPad_Green',619],['ChickenFeet_30pk',552],['CheeseLarge_8pk',552],['Tinkle_Bell_Blue',518],['TinkleBell_SilverAllMetal',480],['BullyStick_12in_STD_5',400],['BullyStick_Variety_ 10oz',332],['ChewProof_Leash6_O',326],['BullyStick_12in_Curls_5',296],['RetLeash3.0_Or_Std_wPD',293],['DblLeash_Adj_Rope_Bl',292],['Martingale_LeatherBR_L',256],['CheeseSmall_5pk',223],['ChickenJerky_14oz',207],['Martingale_SBlack',206],['BullyStick_6in_STD_5',191],['Martingale_LeatherBR_M',112],['FullPigEar_12pk',116],['NailClippers_Or',106],['NailClippers_Gr',61],['DoubleDogLeash_No_Handle',842],['TreatPouch2.0_Black',136],['TreatPouch2.0_Grey',72],['LickBowl_Green',852],['LickBowl_Orange',60],['LickPad_Orange',81],['HandsFree2.0_Orange',902],['TreatBag_Grey',13],['RetLeash2.0_Gr_Lite',6588],['RetLeash2.0_Or_Lite',71],['Martingale_LeatherBR_S',537],['SafetyBelt_Cable40',1],['CarRestraint_Bl',17],['DogTagClip_3pk',125],['Mart2.0_L_Green',160],['Mart2.0_L_Orange',281],['Martingale_MBlack',59],['Collagen_8pk_Var',0],['BeefGulletJerky_14oz',0],['BeefGullet_30pk_6in',0],['Support_HarnessL',34],['Support_HarnessM',8],['TieOut_Cable_30_Bl_XL',27],['TieOut_Cable_30_Bl_M',10],['SlipLeash_Or',150],['Leath_Leash_6ft_Clip',27],['SafetyBelt_Cable60',3]].forEach(r=>WH[r[0]]=r[1]);
+[['760-00518',29604],['760-00520',25327],['760-00521',21372],['CheeseStick_4pk',16845],['RetLeash2.0_Gr_Lite',6496],['HalfPigEar_12pk',5142],['SafetyBelt_Buckle_Bl',4835],['CowKneeCaps_8pk',4327],['SlowFeed_M_O',4209],['CheeseMed_4pk',4178],['Groom_Rake_Gr',3904],['760-00523',3612],['HandsFree2.0_Green',3207],['SmartBell2.0_2_1',3207],['Harness2.0_Gr_L',3051],['RetLeash2.0_Gr_Std',2769],['730-00038',2674],['CheeseLarge_12pk',2151],['DoubleDogLeash_No_H_Lte',2054],['Black_SafetyBelt',2043],['Cheese_FoodTopper_6oz',1984],['760-00522',1983],['CheeseMed_12pk',1913],['Martingale_MGrey',1846],['SafetyBelt_Cable80',1792],['ElkAntlerTHK_MED_6_1pk',1714],['DoubleDogLeash_W_H_Lte',1631],['CheeseStick_1Mstr',1604],['RetLeash3.0_Gr_Lite_wPD',1564],['730-00039',1445],['760-00519',1343],['VehicleHarness_MBlack',1341],['BullyStick_12in_THK_5',1209],['RetLeash3.0_Or_Lite_wPD',1149],['CheeseMstr_12pk',1117],['Hair_Roller_5pk',1084],['Running_leash_long',1080],['RetLeash3.0_Gr_Std_wPD',1069],['CheesePuff_12oz',1064],['760-00525',1039],['CowEars_12pk',1034],['760-00543',1015],['TreatBag_Black',1006],['BullyStick_6in_Curls_5',1003],['CheeseMstr_4pk',999],['SlipSSCollar_16',933],['HandsFree2.0_Orange',902],['LickBowl_Green',852],['DoubleDogLeash_No_Handle',842],['SmartBell2.0_1_1',799],['CheckCord_Or_30',791],['RetLeash2.0_Or_Std',720],['ChewProof_Leash6_G',710],['SlowFeed_Insert_Gr',681],['LED_Collar_O_L',652],['LickPad_Green',619],['9N-LZU6-VXAP',584],['PeanutButter_Nat',554],['CheeseLarge_8pk',552],['ChickenFeet_30pk',552],['Cheese_TrainingCracker_8oz',546],['Martingale_LeatherBR_S',537],['Tinkle_Bell_Blue',518],['Mar2.0_M_Orange',502],['TinkleBell_SilverAllMetal',480],['SportCollar2.0_GreenS',470],['Std_Collar_Color_GL',451],['WaterproofCollar_O_S',419],['AddOn_Smart_Rec',415],['BullyStick_12in_STD_5',400],['leather_black_large',397],['Std_Collar_Color_OM',379],['leather_brown_large',370],['BullyStick_Variety_ 10oz',332],['ChainSSMart_28',332],['ChewProof_Leash6_O',326],['Mar2.0_M_Green',325],['TrafficHandle_Black10',325],['AddOn_Smart_Act',323],['BullyStick_12in_Curls_5',296],['RetLeash3.0_Or_Std_wPD',293],['TrBowl_800_2pk_Or',293],['DblLeash_Adj_Rope_Bl',292],['Mart2.0_L_Orange',281],['Martingale_LeatherBR_L',256],['RetractableLeash_Black_Lite',247],['SportCollar2.0_GreenM',240],['Handlex2_blackorange',240],['BullyStick_6in_STD_10',236],['SportCollar2.0_GreyXL',234],['Harness_Xsmall',232],['CheeseSmall_5pk',223],['leather_LiteBrown_medium',216],['LeatherLeashLite_LiteBrown',215],['ChickenJerky_14oz',207],['Martingale_SBlack',206],['ElkAntlerGNT_LRG_8_1pk',197],['SlipSSCollar_20',195],['StdRefl_CollarG_L',192],['BullyStick_6in_STD_5',191],['ElkSplitAntler_LG_1pk',191],['Harness2.0_Gr_XL',188],['Harness2.0_Gr_S',186],['Harness2.0_Bl_S',185],['Design_Leash_Grey_Std',180],['Harness2.0_Bl_XL',179],['Harness2.0_Gr_M',175],['Std_Collar_Color_GM',174],['Harness2.0_Bl_M',170],['leatherLeash_black',165],['RetractableLeash_Black_Std',163],['Mart2.0_L_Green',160],['ChainSSMart_32',159],['Harness2.0_ Bl_L',140],['Nyl_Mart_Grey_S',139],['WaterproofCollar_G_S',131],['Nyl_Mart_Black_S',131],['ElkAntlerTHK_MED_6_2pk',127],['DogTagClip_3pk',125],['Large Sports Collar',123],['Std_Collar_Color_OS',121],['SportCollar2.0_BlackXL',119],['SportCollar2.0_GreyS',117],['SportCollar2.0_BlackS',117],['FullPigEar_12pk',116],['Martingale_LeatherBR_M',112],['TrafficHandle_Grey10',110],['BullyStick_6in_STD_25',108],['NailClippers_Or',106],['Std_Collar_Color_GS',104],['Std_Leash_Color_G',100],['Std_Leash_Color_O',100],['SportCollar2.0_GreenXL',98],['SportCollar2.0_BlackL',98],['Clicker_Orange',98],['SportCollar2.0_OrangeXL',97],['SlowFeed_M_G',97],['SportCollar2.0_BlackM',96],['SportCollar2.0_OrangeS',96],['BullyStick_12in_STD_10',95],['LED_Collar_G_L',94],['SportCollar2.0_OrangeM',91],['SportCollar2.0_OrangeL',90],['Nyl_Mart_Grey_M',88],['SportCollar2.0_GreyM',87],['Grey Large Collar',87],['Mart2.0_S_M_Green',85],['TB2 Grey',83],['StdRefl_CollarB_L',82],['LickPad_Orange',81],['PoopBagHolder_Black',80],['leather_brown_small',80],['PoopBagHolder_Grey',74],['Nyl_Mart_Black_M',74],['Black Small Collar',70],['leather_brown_medium',66],['SportCollar2.0_GreyL',64],['BowlStainless_2pk_8c',64],['Nyl_Mart_Grey_L',64],['SportCollar2.0_GreenL',62],['NailClippers_Gr',61],['Medium Sports Collar',59],['Martingale_MBlack',59],['leather_brown_xlarge',58],['ElkSplitAntler_MED_1pk',50],['ElkAntlerJMBO_MSTR_8_2pk',47],['Nyl_Mart_Black_L',44],['StdRefl_CollarG_M',40],['WaterBottle_Green',37],['HalfPigEar_3lb',35],['Support_HarnessL',34],['BullyBraided_5pk_Var',28],['Grey_Run_LongLeash',27],['TieOut_Cable_30_Bl_XL',11],['Mart2.0_S_M_Orange',10],['VehicleHarness_SBlack',10],['Support_HarnessM',8],['ChainSSMart_20',7],['CarRestraint_Bl',5],['SafetyBelt_Cable60',3],['TieOut_Cable_30_Bl_M',2],['Mart2.0_S_Orange',10],['PeanutButter_Nat_2pk',22],['Collagen_8pk_Var',0],['BeefGulletJerky_14oz',0],['BeefGullet_30pk_6in',0],['TreatPouch2.0_Black',136],['TreatPouch2.0_Grey',72],['LickBowl_Orange',60],['HandsFree2.0_Orange',902],['TreatBag_Grey',13],['RetLeash2.0_Or_Lite',71],['SafetyBelt_Cable40',1],['Leath_Leash_6ft_Clip',27]].forEach(r=>WH[r[0]]=r[1]);
 
 // WH daily velocity for DOS display (AMZ US L30D as proxy)
 const WH_DAILY={};
@@ -376,11 +373,10 @@ function renderWH(){
 function renderWHTable(){
   const rows=Object.entries(WH).filter(([s,u])=>u>0).filter(([s])=>!whFilter||s.toLowerCase().includes(whFilter.toLowerCase())||nm(s).toLowerCase().includes(whFilter.toLowerCase())).sort((a,b)=>b[1]-a[1]);
   document.getElementById('wh-ct').textContent=rows.length+' / '+Object.values(WH).filter(u=>u>0).length+' SKUs';
-  const st=(u)=>u>100?'color:rgba(196,235,160,.9)':u>20?'color:rgba(255,198,100,.9)':'color:rgba(255,150,150,.9)';
-  const sl=(u)=>u>100?'Stocked':u>20?'Low':'Critical';
+  const st=(u)=>u>500?'color:rgba(196,235,160,.9)':u>100?'color:rgba(255,198,100,.9)':'color:rgba(255,150,150,.9)';
+  const sl=(u)=>u>500?'Stocked':u>100?'Low':'Critical';
   document.getElementById('wh-tbody').innerHTML=rows.map(([s,u])=>{
-    const d=WH_DAILY[s]||0;const dos=d>0?u/d:null;
-    return`<tr style="background:rgba(255,255,255,.04)"><td class="sku-c" style="color:rgba(255,255,255,.9)">${s}</td><td style="font-size:10px;color:rgba(255,255,255,.6)">${nm(s)}</td><td class="r" style="font-weight:600;color:#fff">${u.toLocaleString()}</td><td class="r" style="color:rgba(255,255,255,.7)">${d>0?d.toFixed(1):'—'}</td><td class="r"><span class="dp ${dc(dos)}">${dl(dos)}</span>${bar(dos)}</td><td class="r" style="font-size:10px;font-weight:600;${st(u)}">${sl(u)}</td></tr>`;
+    return`<tr style="background:rgba(255,255,255,.04)"><td class="sku-c" style="color:rgba(255,255,255,.9)">${s}</td><td style="font-size:10px;color:rgba(255,255,255,.6)">${nm(s)}</td><td class="r" style="font-weight:600;color:#fff">${u.toLocaleString()}</td><td class="r" style="font-size:10px;font-weight:600;${st(u)}">${sl(u)}</td></tr>`;
   }).join('');
 }
 function filterWH(v){whFilter=v;renderWHTable();}
@@ -394,15 +390,34 @@ function getAllSkus(){
   return[...set].filter(s=>Object.values(D).some(d=>(d[s]||0)>0)||WH[s]>0);
 }
 function calcAlloc(){
+  // Build FBA total lookup (avail + inbound) for AMZ channels
+  const fbaUs={};AMZ_US.forEach(r=>fbaUs[r.sku]=r.total);
+  const fbaCa={};AMZ_CA.forEach(r=>fbaCa[r.sku]=r.total);
   return getAllSkus().map(sku=>{
     const wh=WH[sku]||0;
     const chDemand={};let total=0;
     CHANNELS.forEach(c=>{const needed=Math.round((D[c.id][sku]||0)*DOS_TARGETS[c.id]);chDemand[c.id]=needed;total+=needed;});
     if(total===0&&wh===0)return null;
+    // For allocation, AMZ channels use their own FBA pool, non-AMZ channels share WH 240
+    const amzUsNeed=chDemand['amz_us']||0;
+    const amzCaNeed=chDemand['amz_ca']||0;
+    const amzUsAvail=fbaUs[sku]||0;
+    const amzCaAvail=fbaCa[sku]||0;
+    const whNeed=total-amzUsNeed-amzCaNeed; // WH 240 demand = all non-AMZ channels
     const alloc={};
-    if(wh>=total){CHANNELS.forEach(c=>alloc[c.id]=chDemand[c.id]);}
-    else{const r=total>0?wh/total:0;CHANNELS.forEach(c=>alloc[c.id]=Math.round(chDemand[c.id]*r));}
-    return{sku,wh,total,alloc,pct:total>0?Math.min(100,Math.round(wh/total*100)):100,covered:wh>=total};
+    // AMZ US: covered by FBA pool
+    alloc['amz_us']=amzUsNeed>0?(amzUsAvail>=amzUsNeed?amzUsNeed:Math.round(amzUsNeed*Math.min(1,amzUsAvail/amzUsNeed))):0;
+    // AMZ CA: covered by FBA pool  
+    alloc['amz_ca']=amzCaNeed>0?(amzCaAvail>=amzCaNeed?amzCaNeed:Math.round(amzCaNeed*Math.min(1,amzCaAvail/amzCaNeed))):0;
+    // WH 240 channels: fair-share from WH 240
+    const whRatio=whNeed>0?Math.min(1,wh/whNeed):1;
+    ['shopify','chewy','walmart','tiktok','target'].forEach(cid=>{
+      alloc[cid]=Math.round((chDemand[cid]||0)*whRatio);
+    });
+    // Overall coverage: weighted across all channels
+    const totalAllocated=Object.values(alloc).reduce((a,b)=>a+b,0);
+    const pct=total>0?Math.min(100,Math.round(totalAllocated/total*100)):100;
+    return{sku,wh,total,alloc,pct,covered:pct>=100};
   }).filter(r=>r&&(r.total>0||r.wh>0)).sort((a,b)=>b.total-a.total);
 }
 function buildAllocControls(){
@@ -458,41 +473,41 @@ function filterAlloc(v){allocFilter=v;renderAllocTable();}
 
 // ── CHANNEL ROW BUILDERS ──────────────────────────────────────────────
 function amzRow(r){const d=r.daily>0?r.total/r.daily:null;return`<tr><td>${skuCell(r.sku,r.name)}</td><td class="r">${r.daily.toFixed(1)}</td><td class="r">${r.avail.toLocaleString()}</td><td class="r" style="color:var(--blue)">${r.inbound.toLocaleString()}</td><td class="r" style="font-weight:600">${r.total.toLocaleString()}</td><td class="r">${Math.round(r.fcst1).toLocaleString()}</td><td><span class="dp ${dc(d)}">${dl(d)}</span>${bar(d)}</td></tr>`;}
-function wmRow(r){return`<tr><td>${skuCell(r.sku,r.name)}</td><td class="r">${r.daily.toFixed(1)}</td><td class="r">${r.avail.toLocaleString()}</td><td class="r" style="color:var(--blue)">${r.inbound.toLocaleString()}</td><td class="r">${r.avail+r.inbound}</td><td><span class="dp ${dc(r.dos)}">${dl(r.dos)}</span>${bar(r.dos)}</td><td style="font-size:10px;font-weight:600;color:${r.status==='In Stock'?'var(--green)':r.status==='At Risk'?'var(--red)':'var(--amber)'}">${r.status}</td></tr>`;}
+function wmRow(r){return`<tr><td>${skuCell(r.sku,r.name)}</td><td class="r">${r.daily.toFixed(1)}</td><td class="r">${r.avail.toLocaleString()}</td><td class="r" style="color:var(--blue)">${r.inbound.toLocaleString()}</td><td class="r">${(r.avail+r.inbound).toLocaleString()}</td><td><span class="dp ${dc(r.dos)}">${dl(r.dos)}</span>${bar(r.dos)}</td></tr>`;}
 function ttRow(r){return`<tr><td>${skuCell(r.sku,r.name)}</td><td class="r">${r.daily7.toFixed(1)}</td><td class="r">${r.avail.toLocaleString()}</td><td class="r" style="color:var(--blue)">${r.inbound.toLocaleString()}</td><td><span class="dp ${dc(r.dos)}">${dl(r.dos)}</span>${bar(r.dos)}</td></tr>`;}
-function tgtRow(r){return`<tr><td>${skuCell(r.sku,r.title)}</td><td>${r.tcin}</td><td class="r">${r.inv}${r.inv<10?`<span class="dp dr" style="margin-left:4px;font-size:9px">Low</span>`:''}</td><td>$${r.price.toFixed(2)}</td></tr>`;}
+function tgtRow(r){const vel=D.target[r.sku]||0;const dos=vel>0?Math.round(r.inv/vel):null;return`<tr><td>${skuCell(r.sku,r.title)}</td><td class="r">${r.inv}${r.inv<10?`<span class="dp dr" style="margin-left:4px;font-size:9px">Low</span>`:''}</td><td class="r">${vel>0?vel.toFixed(2):'—'}</td><td><span class="dp ${dc(dos)}">${dl(dos)}</span>${bar(dos)}</td></tr>`;}
 function flRow(ch,r){const d=r.daily_velocity;const dos=d>0?((WH[r.sku]||0)/d):null;return`<tr><td>${skuCell(r.sku,r.name||nm(r.sku))}</td><td class="r">${d.toFixed(2)}</td><td class="r">${r.forecast_n45d||Math.round(d*45)}</td><td class="r">${(WH[r.sku]||0).toLocaleString()}</td><td><span class="dp ${dc(dos)}">${dl(dos)}</span>${bar(dos)}</td></tr>`;}
 
 // Channel definitions
 const CHANNEL_DEFS=[
   {id:'amz_us',label:'Amazon US (FBA)',color:'#1a5fa8',live:true,
-   skus:()=>AMZ_US.length,avgDOS:()=>avgDOS(AMZ_US,r=>r.total,r=>r.daily),atRisk:()=>atRisk(AMZ_US,r=>r.total,r=>r.daily),
+   skus:()=>160,avgDOS:()=>avgDOS(AMZ_US,r=>r.total,r=>r.daily),atRisk:()=>atRisk(AMZ_US,r=>r.total,r=>r.daily),
    badge:()=>{const d=avgDOS(AMZ_US,r=>r.total,r=>r.daily);return d<30?'br':d<45?'by':'bg'},badgeLbl:()=>{const d=avgDOS(AMZ_US,r=>r.total,r=>r.daily);return d<30?'At risk':d<45?'Watch':'Healthy'},
    html:()=>buildTbl('amz-us',AMZ_US,['sku','name'],amzRow,['SKU / Product','Daily (Flieber)','FBA available','Inbound to AMZ','Total FBA','Flieber N45D','DOS'])},
   {id:'amz_ca',label:'Amazon CA (FBA)',color:'#2176b5',live:true,
-   skus:()=>AMZ_CA.length,avgDOS:()=>avgDOS(AMZ_CA,r=>r.total,r=>r.daily),atRisk:()=>atRisk(AMZ_CA,r=>r.total,r=>r.daily),
+   skus:()=>44,avgDOS:()=>avgDOS(AMZ_CA,r=>r.total,r=>r.daily),atRisk:()=>atRisk(AMZ_CA,r=>r.total,r=>r.daily),
    badge:()=>'bg',badgeLbl:()=>'Healthy',
    html:()=>buildTbl('amz-ca',AMZ_CA,['sku','name'],amzRow,['SKU / Product','Daily (Flieber)','FBA available','Inbound to AMZ','Total FBA','Flieber N45D','DOS'])},
   {id:'shopify',label:'Shopify (DTC)',color:'#95bf47',live:true,
-   skus:()=>Object.keys(D.shopify).length,avgDOS:()=>null,atRisk:()=>Object.keys(D.shopify).filter(s=>{const d=D.shopify[s];return d>0&&(WH[s]||0)/d<30;}).length,
+   skus:()=>167,avgDOS:()=>null,atRisk:()=>Object.keys(D.shopify).filter(s=>{const d=D.shopify[s];return d>0&&(WH[s]||0)/d<30;}).length,
    badge:()=>'bg',badgeLbl:()=>'Via WH 240',
    html:()=>`<div class="nb">Fulfilled from WH 240. Velocities live from Flieber (Mighty Paw-Shopify-US). Use the WH 240 Allocation tab to see per-SKU coverage.</div>${buildTbl('shopify',Object.entries(D.shopify).filter(([s,d])=>d>0).sort((a,b)=>b[1]-a[1]).map(([s,d])=>({sku:s,daily_velocity:d,forecast_n45d:Math.round(d*45)})),['sku'],r=>flRow('shopify',r),['SKU / Product','Daily velocity (Flieber)','N45D forecast','WH 240 on hand','WH DOS'])}` },
   {id:'chewy',label:'Chewy (Wholesale)',color:'#0066cc',live:true,
-   skus:()=>Object.keys(D.chewy).length,avgDOS:()=>null,atRisk:()=>Object.keys(D.chewy).filter(s=>{const d=D.chewy[s];return d>0&&(WH[s]||0)/d<30;}).length,
+   skus:()=>44,avgDOS:()=>null,atRisk:()=>Object.keys(D.chewy).filter(s=>{const d=D.chewy[s];return d>0&&(WH[s]||0)/d<30;}).length,
    badge:()=>'bx',badgeLbl:()=>'No inv data',
    html:()=>`<div class="nb">Wholesale channel. Velocities live from Flieber (Mighty Paw-CHEWY-US). Fulfilled from WH 240.</div>${buildTbl('chewy',Object.entries(D.chewy).filter(([s,d])=>d>0).sort((a,b)=>b[1]-a[1]).map(([s,d])=>({sku:s,daily_velocity:d,forecast_n45d:Math.round(d*45)})),['sku'],r=>flRow('chewy',r),['SKU / Product','Daily velocity (Flieber)','N45D forecast','WH 240 on hand','WH DOS'])}` },
-  {id:'tiktok',label:'TikTok FBT',color:'#111',live:false,
-   skus:()=>TT.length,avgDOS:()=>avgDOS(TT.filter(r=>r.avail>0),r=>r.avail,r=>r.daily7),atRisk:()=>atRisk(TT.filter(r=>r.avail>0),r=>r.avail,r=>r.daily7),
+  {id:'tiktok',label:'TikTok FBT',color:'#111',live:true,
+   skus:()=>71,avgDOS:()=>avgDOS(TT.filter(r=>r.avail>0),r=>r.avail,r=>r.daily7),atRisk:()=>atRisk(TT.filter(r=>r.avail>0),r=>r.avail,r=>r.daily7),
    badge:()=>'by',badgeLbl:()=>'Mixed stock',
    html:()=>buildTbl('tiktok',TT,['sku','name'],ttRow,['SKU / Product','Daily (L7D)','FBT available','Inbound','DOS'])},
-  {id:'walmart',label:'Walmart 3P',color:'#0071ce',live:false,
-   skus:()=>WM.length,avgDOS:()=>avgDOS(WM,r=>r.avail,r=>r.daily),atRisk:()=>atRisk(WM,r=>r.avail,r=>r.daily),
+  {id:'walmart',label:'Walmart 3P',color:'#0071ce',live:true,
+   skus:()=>119,avgDOS:()=>avgDOS(WM,r=>r.avail,r=>r.daily),atRisk:()=>atRisk(WM,r=>r.avail,r=>r.daily),
    badge:()=>{const d=avgDOS(WM,r=>r.avail,r=>r.daily);return d<30?'br':d<45?'by':'bg'},badgeLbl:()=>{const d=avgDOS(WM,r=>r.avail,r=>r.daily);return d<30?'At risk':d<45?'Watch':'Healthy'},
-   html:()=>buildTbl('walmart',WM,['sku','name'],wmRow,['SKU / Product','Daily sold','Available','Inbound','Total','DOS','Walmart status'])},
+   html:()=>buildTbl('walmart',WM,['sku','name'],wmRow,['SKU / Product','Daily sold','Available','Inbound','Total','DOS'])},
   {id:'target',label:'Target+',color:'#cc0000',live:true,
-   skus:()=>TGT.length,avgDOS:()=>null,atRisk:()=>TGT.filter(r=>r.inv<10).length,
+   skus:()=>47,avgDOS:()=>null,atRisk:()=>TGT.filter(r=>r.inv<10).length,
    badge:()=>{const r=TGT.filter(r=>r.inv<10).length;return r>3?'by':'bg'},badgeLbl:()=>{const r=TGT.filter(r=>r.inv<10).length;return r>0?r+' low stock':'Healthy'},
-   html:()=>buildTbl('target',TGT,['sku','title'],tgtRow,['SKU / Product','TCIN','DC Inventory','Price'])},
+   html:()=>buildTbl('target',TGT,['sku','title'],tgtRow,['SKU / Product','DC Inventory','Daily velocity','DOS'])},
 ];
 
 function initCh(id){
@@ -512,10 +527,6 @@ function renderScorecard(){
   const allocRisk=calcAlloc().filter(r=>!r.covered).length;
   document.getElementById('scorecard').innerHTML=`
     <div class="mc"><div class="mc-lbl">WH 240 sellable units</div><div class="mc-val" style="color:var(--blue)">${whTot.toLocaleString()}</div><div class="mc-sub"><span class="live-pill"><span class="live-dot"></span>Live BigQuery</span></div></div>
-    <div class="mc"><div class="mc-lbl">Amazon US SKUs</div><div class="mc-val">${AMZ_US.length}</div><div class="mc-sub"><span class="live-pill"><span class="live-dot"></span>Live BigQuery</span></div></div>
-    <div class="mc"><div class="mc-lbl">Walmart SKUs</div><div class="mc-val">${WM.length}</div><div class="mc-sub">imported</div></div>
-    <div class="mc"><div class="mc-lbl">TikTok FBT SKUs</div><div class="mc-val">${TT.length}</div><div class="mc-sub">imported</div></div>
-    <div class="mc"><div class="mc-lbl">Target+ SKUs</div><div class="mc-val">${TGT.length}</div><div class="mc-sub">imported · Flieber velocity</div></div>
     <div class="mc"><div class="mc-lbl">At risk (DOS &lt;30d)</div><div class="mc-val" style="color:var(--red)">${risks}</div><div class="mc-sub">across all channels</div></div>
     <div class="mc"><div class="mc-lbl">WH 240 alloc gaps</div><div class="mc-val" style="color:var(--amber)">${allocRisk}</div><div class="mc-sub">SKUs below DOS target</div></div>`;
 }
