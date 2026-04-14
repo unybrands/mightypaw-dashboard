@@ -302,7 +302,7 @@ const CHANNELS=[
   {id:'shopify',label:'Shopify DTC',color:'#95bf47',live:true,def:30},
   {id:'chewy',label:'Chewy',color:'#0066cc',live:true,def:30},
   {id:'walmart',label:'Walmart',color:'#0071ce',live:false,def:30},
-  {id:'tiktok',label:'TikTok (FBT + Samples)',color:'#111',live:false,def:21},
+  {id:'tiktok',label:'TikTok (FBT + Samples)',color:'#111',live:true,def:30},
   {id:'target',label:'Target+',color:'#cc0000',live:true,def:30},
 ];
 const DOS_TARGETS={};
@@ -697,6 +697,29 @@ const MKT_POOL={};
 // TikTok Samples demand is combined into D.tiktok above
 // They are purely WH 240 → fulfillment (no separate DC inventory buffer in this model)
 
+
+// ── DYNAMIC POOL UPDATE — called when WM/TGT files uploaded ──────────
+// Walmart and Target+ inventory from uploaded files feeds into MKT_POOL
+function updateWMPool(){
+  WM.forEach(r=>{
+    const total=(r.avail||0)+(r.inbound||0);
+    MKT_POOL['walmart:'+r.sku]=total;
+  });
+}
+function updateTGTPool(){
+  TGT.forEach(r=>{
+    const total=(r.inv||0)+(r.inbound||0);
+    MKT_POOL['target:'+r.sku]=total;
+  });
+}
+// TikTok has no BigQuery inventory — pool stays zero (WH 240 covers all)
+// Call on init to seed from hardcoded uploaded data
+function initMarketplacePools(){
+  updateWMPool();
+  updateTGTPool();
+  // Move walmart and target out of WH_ONLY logic — handled by pool now
+}
+
 function getAllSkus(){
   const set=new Set(Object.keys(WH));
   Object.values(D).forEach(d=>Object.keys(d).forEach(s=>set.add(s)));
@@ -714,8 +737,8 @@ function calcAlloc(){
   //
   // Shopify/Chewy/Walmart/Target+ have no separate pool → wh240_needed = dos_demand
 
-  const WH_ONLY=['shopify','chewy','walmart','tiktok','target']; // WH 240 covers full demand
-  const POOL_CHANNELS=['amz_us','amz_ca'];                        // have own inventory pool
+  const WH_ONLY=['shopify','chewy','tiktok']; // WH 240 covers full demand (no separate pool)
+  const POOL_CHANNELS=['amz_us','amz_ca','walmart','target']; // have own inventory pool
 
   return getAllSkus().map(sku=>{
     const wh=WH[sku]||0;
@@ -911,38 +934,68 @@ function amzRow(r){
     <td style="text-align:right"><span class="dp ${dc(d)}">${dl(d)}</span>${bar(d)}</td>
   </tr>`;}
 function wmRow(r){
+  const wmAvail=r.avail||0;const wmInbound=r.inbound||0;
+  const wmTotal=wmAvail+wmInbound;
+  const wmDOS=r.daily>0?wmTotal/r.daily:null;
   return`<tr>
     <td>${skuCell(r.sku,r.name)}</td>
-    <td style="text-align:right">${r.daily.toFixed(1)}</td>
-    <td style="text-align:right">${r.avail.toLocaleString()}</td>
-    <td style="text-align:right;color:var(--blue)">${r.inbound.toLocaleString()}</td>
-    <td style="text-align:right">${(r.avail+r.inbound).toLocaleString()}</td>
-    <td style="text-align:right"><span class="dp ${dc(r.dos)}">${dl(r.dos)}</span>${bar(r.dos)}</td>
+    <td style="text-align:right">${r.daily.toFixed(3)}</td>
+    <td style="text-align:right">${wmAvail.toLocaleString()}</td>
+    <td style="text-align:right;color:var(--blue)">${wmInbound.toLocaleString()}</td>
+    <td style="text-align:right;font-weight:600">${wmTotal.toLocaleString()}</td>
+    <td style="text-align:right">${Math.round(r.fcst1).toLocaleString()}</td>
+    <td style="text-align:right"><span class="dp ${dc(wmDOS)}">${dl(wmDOS)}</span>${bar(wmDOS)}</td>
   </tr>`;}
 function ttRow(r){
+  const ttTotal=r.avail+(r.inbound||0);
+  const ttDOS=r.daily7>0?ttTotal/r.daily7:null;
   return`<tr>
     <td>${skuCell(r.sku,r.name)}</td>
     <td style="text-align:right">${r.daily7.toFixed(1)}</td>
     <td style="text-align:right">${r.avail.toLocaleString()}</td>
-    <td style="text-align:right;color:var(--blue)">${r.inbound.toLocaleString()}</td>
-    <td style="text-align:right"><span class="dp ${dc(r.dos)}">${dl(r.dos)}</span>${bar(r.dos)}</td>
+    <td style="text-align:right;color:var(--blue)">${(r.inbound||0).toLocaleString()}</td>
+    <td style="text-align:right;font-weight:600">${ttTotal.toLocaleString()}</td>
+    <td style="text-align:right"><span class="dp ${dc(ttDOS)}">${dl(ttDOS)}</span>${bar(ttDOS)}</td>
   </tr>`;}
 function tgtRow(r){
-  const vel=D.target[r.sku]||0;const dos=vel>0?Math.round(r.inv/vel):null;
+  const vel=D.target[r.sku]||0;
+  const tgtAvail=r.inv||0;const tgtInbound=r.inbound||0;
+  const tgtTotal=tgtAvail+tgtInbound;
+  const tgtDOS=vel>0?tgtTotal/vel:null;
+  const tgtFcst=Math.round(vel*45);
   return`<tr>
     <td>${skuCell(r.sku,r.title)}</td>
-    <td style="text-align:right">${r.inv}${r.inv<10?`<span class="dp dr" style="margin-left:4px;font-size:9px">Low</span>`:''}</td>
-    <td style="text-align:right">${vel>0?vel.toFixed(2):'—'}</td>
-    <td style="text-align:right"><span class="dp ${dc(dos)}">${dl(dos)}</span>${bar(dos)}</td>
+    <td style="text-align:right">${vel>0?vel.toFixed(3):'—'}</td>
+    <td style="text-align:right">${tgtAvail.toLocaleString()}${tgtAvail<10&&vel>0?`<span class="dp dr" style="margin-left:4px;font-size:9px">Low</span>`:''}</td>
+    <td style="text-align:right;color:var(--blue)">${tgtInbound.toLocaleString()}</td>
+    <td style="text-align:right;font-weight:600">${tgtTotal.toLocaleString()}</td>
+    <td style="text-align:right">${vel>0?tgtFcst.toLocaleString():'—'}</td>
+    <td style="text-align:right"><span class="dp ${dc(tgtDOS)}">${dl(tgtDOS)}</span>${bar(tgtDOS)}</td>
   </tr>`;}
 function flRow(ch,r){
-  const d=r.daily_velocity;const dos=d>0?((WH[r.sku]||0)/d):null;
+  const d=r.daily_velocity;
+  const n45d=r.forecast_n45d||Math.round(d*45);
+  const wh=WH[r.sku]||0;
+  // Get WH 240 surplus for this SKU from last allocation run (if available)
+  const allocRow=allocData?allocData.find(a=>a.sku===r.sku):null;
+  const surplus=allocRow?allocRow.whSurplus:null;
+  // Can WH 240 meet N45D demand for this channel?
+  // Channel demand at target DOS
+  const chDemand=Math.round(d*DOS_TARGETS[ch]);
+  const canMeet=surplus!=null?(surplus>=0):null; // surplus already accounts for all channels
+  // Coverage: what % of N45D can be sourced from WH 240 after other allocations
+  const wh240ForCh=allocRow?(allocRow.wh240Need&&allocRow.wh240Need[ch]||0):chDemand;
+  const n45dCovPct=n45d>0?Math.min(100,Math.round((wh240ForCh/n45d)*100)):100;
+  const covCl=n45dCovPct>=100?'dg':n45dCovPct>=70?'dy':'dr';
   return`<tr>
     <td>${skuCell(r.sku,r.name||nm(r.sku))}</td>
     <td style="text-align:right">${d.toFixed(2)}</td>
-    <td style="text-align:right">${r.forecast_n45d||Math.round(d*45)}</td>
-    <td style="text-align:right">${(WH[r.sku]||0).toLocaleString()}</td>
-    <td style="text-align:right"><span class="dp ${dc(dos)}">${dl(dos)}</span>${bar(dos)}</td>
+    <td style="text-align:right">${n45d.toLocaleString()}</td>
+    <td style="text-align:right">${wh.toLocaleString()}</td>
+    <td style="text-align:right">
+      <span class="dp ${covCl}">${n45dCovPct}%</span>
+      <div style="font-size:9px;color:var(--gray-400);margin-top:1px">N45D covered by WH 240</div>
+    </td>
   </tr>`;}
 
 // Channel definitions
@@ -958,23 +1011,23 @@ const CHANNEL_DEFS=[
   {id:'shopify',label:'Shopify (DTC)',color:'#95bf47',live:true,
    skus:()=>202,oosCount:()=>OOS_DATA.shopify.filter(r=>r.status==='OOS').length,avgDOS:()=>null,atRisk:()=>Object.keys(D.shopify).filter(s=>{const d=D.shopify[s];return d>0&&(WH[s]||0)/d<30;}).length,
    badge:()=>'bg',badgeLbl:()=>'Via WH 240',
-   html:()=>`<div class="nb">Fulfilled from WH 240. Velocities live from Flieber (Mighty Paw-Shopify-US). Use the WH 240 Allocation tab to see per-SKU coverage.</div>${buildTbl('shopify',Object.entries(D.shopify).filter(([s,d])=>d>0).sort((a,b)=>b[1]-a[1]).map(([s,d])=>({sku:s,daily_velocity:d,forecast_n45d:Math.round(d*45)})),['sku'],r=>flRow('shopify',r),['SKU / Product','Daily velocity (Flieber)','N45D forecast','WH 240 on hand','WH DOS'])}` },
+   html:()=>`<div class="nb">Fulfilled from WH 240. Velocities live from Flieber (Mighty Paw-Shopify-US). Use the WH 240 Allocation tab to see per-SKU coverage.</div>${buildTbl('shopify',Object.entries(D.shopify).filter(([s,d])=>d>0).sort((a,b)=>b[1]-a[1]).map(([s,d])=>({sku:s,daily_velocity:d,forecast_n45d:Math.round(d*45)})),['sku'],r=>flRow('shopify',r),['SKU / Product','Daily velocity (Flieber)','N45D forecast','WH 240 on hand','WH 240 coverage'])}` },
   {id:'chewy',label:'Chewy (Wholesale)',color:'#0066cc',live:true,
    skus:()=>44,oosCount:()=>0,avgDOS:()=>null,atRisk:()=>Object.keys(D.chewy).filter(s=>{const d=D.chewy[s];return d>0&&(WH[s]||0)/d<30;}).length,
    badge:()=>'bx',badgeLbl:()=>'No inv data',
-   html:()=>`<div class="nb">Wholesale channel. Velocities live from Flieber (Mighty Paw-CHEWY-US). Fulfilled from WH 240.</div>${buildTbl('chewy',Object.entries(D.chewy).filter(([s,d])=>d>0).sort((a,b)=>b[1]-a[1]).map(([s,d])=>({sku:s,daily_velocity:d,forecast_n45d:Math.round(d*45)})),['sku'],r=>flRow('chewy',r),['SKU / Product','Daily velocity (Flieber)','N45D forecast','WH 240 on hand','WH DOS'])}` },
+   html:()=>`<div class="nb">Wholesale channel. Velocities live from Flieber (Mighty Paw-CHEWY-US). Fulfilled from WH 240.</div>${buildTbl('chewy',Object.entries(D.chewy).filter(([s,d])=>d>0).sort((a,b)=>b[1]-a[1]).map(([s,d])=>({sku:s,daily_velocity:d,forecast_n45d:Math.round(d*45)})),['sku'],r=>flRow('chewy',r),['SKU / Product','Daily velocity (Flieber)','N45D forecast','WH 240 on hand','WH 240 coverage'])}` },
   {id:'tiktok',label:'TikTok (FBT + Samples)',color:'#111',live:true,
    skus:()=>80,oosCount:()=>OOS_DATA.tiktok.filter(r=>r.status==='OOS').length,avgDOS:()=>avgDOS(TT.filter(r=>r.avail>0),r=>r.avail,r=>r.daily7),atRisk:()=>atRisk(TT.filter(r=>r.avail>0),r=>r.avail,r=>r.daily7),
    badge:()=>'by',badgeLbl:()=>'Mixed stock',
-   html:()=>buildTbl('tiktok',TT,['sku','name'],ttRow,['SKU / Product','Daily (L7D)','FBT available','Inbound','DOS'])},
+   html:()=>buildTbl('tiktok',TT,['sku','name'],ttRow,['SKU / Product','Daily (Flieber)','FBT available','Inbound','Total FBT','DOS'])},
   {id:'walmart',label:'Walmart 3P',color:'#0071ce',live:true,
    skus:()=>119,oosCount:()=>OOS_DATA.walmart.filter(r=>r.status==='OOS').length,avgDOS:()=>avgDOS(WM,r=>r.avail,r=>r.daily),atRisk:()=>atRisk(WM,r=>r.avail,r=>r.daily),
    badge:()=>{const d=avgDOS(WM,r=>r.avail,r=>r.daily);return d<30?'br':d<45?'by':'bg'},badgeLbl:()=>{const d=avgDOS(WM,r=>r.avail,r=>r.daily);return d<30?'At risk':d<45?'Watch':'Healthy'},
-   html:()=>buildTbl('walmart',WM,['sku','name'],wmRow,['SKU / Product','Daily sold','Available','Inbound','Total','DOS'])},
+   html:()=>buildTbl('walmart',WM,['sku','name'],wmRow,['SKU / Product','Daily (Flieber)','WMT available','Inbound','Total WMT','Flieber N45D','DOS'])},
   {id:'target',label:'Target+',color:'#cc0000',live:true,
    skus:()=>47,oosCount:()=>OOS_DATA.target.filter(r=>r.status==='OOS').length,avgDOS:()=>null,atRisk:()=>TGT.filter(r=>r.inv<10).length,
    badge:()=>{const r=TGT.filter(r=>r.inv<10).length;return r>3?'by':'bg'},badgeLbl:()=>{const r=TGT.filter(r=>r.inv<10).length;return r>0?r+' low stock':'Healthy'},
-   html:()=>buildTbl('target',TGT,['sku','title'],tgtRow,['SKU / Product','DC Inventory','Daily velocity','DOS'])},
+   html:()=>buildTbl('target',TGT,['sku','title'],tgtRow,['SKU / Product','Daily (Flieber)','DC Inventory','Inbound','Total','Flieber N45D','DOS'])},
 ];
 
 
@@ -1207,11 +1260,11 @@ function switchTab(t,btn){
 // ── IMPORT ────────────────────────────────────────────────────────────
 function ev(e){e.preventDefault();}
 function drop(e,ch){e.preventDefault();const f=e.dataTransfer.files[0];if(f)handleFile({files:[f]},ch);}
-function handleFile(inp,ch){if(!inp.files[0])return;const st=document.getElementById('st-'+ch);st.style.color='var(--gray-400)';st.textContent='Reading '+inp.files[0].name+'...';setTimeout(()=>{st.textContent='✓ File received — refresh on next dashboard load.';st.style.color='var(--green)';},600);}
+function handleFile(inp,ch){if(!inp.files[0])return;const st=document.getElementById('st-'+ch);st.style.color='var(--gray-400)';st.textContent='Reading '+inp.files[0].name+'...';setTimeout(()=>{st.textContent='✓ File received — allocation pools updated.';st.style.color='var(--green)';if(ch==='wm'){updateWMPool();renderAlloc();}if(ch==='tgt'){updateTGTPool();renderAlloc();}},600);}
 
 // ── INIT ──────────────────────────────────────────────────────────────
 document.getElementById('as-of-date').textContent=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-renderWH();renderScorecard();renderCards();buildAllocControls();
+initMarketplacePools();renderWH();renderScorecard();renderCards();buildAllocControls();
 </script>
 </body>
 </html>
