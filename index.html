@@ -729,15 +729,15 @@ function flRow(ch,r){
 // Channel definitions
 const CHANNEL_DEFS=[
   {id:'amz_us',label:'Amazon US (FBA)',color:'#1a5fa8',live:true,
-   skus:()=>160,oosCount:()=>OOS_DATA.amz_us.filter(r=>r.status==='OOS').length,avgDOS:()=>avgDOS(AMZ_US,r=>r.total,r=>r.daily),atRisk:()=>atRisk(AMZ_US,r=>r.total,r=>r.daily),
+   skus:()=>160,oosCount:()=>computeAlerts().amz_us.filter(r=>r.status==='OOS'||r.status==='Critical <7d').length,avgDOS:()=>avgDOS(AMZ_US,r=>r.total,r=>r.daily),atRisk:()=>atRisk(AMZ_US,r=>r.total,r=>r.daily),
    badge:()=>{const d=avgDOS(AMZ_US,r=>r.total,r=>r.daily);return d<30?'br':d<45?'by':'bg'},badgeLbl:()=>{const d=avgDOS(AMZ_US,r=>r.total,r=>r.daily);return d<30?'At risk':d<45?'Watch':'Healthy'},
    html:()=>buildTbl('amz-us',AMZ_US,['sku','name'],amzRow,['SKU / Product','Daily (Flieber)','FBA available','Inbound to AMZ','Total FBA','Flieber N45D','DOS'])},
   {id:'amz_ca',label:'Amazon CA (FBA)',color:'#2176b5',live:true,
-   skus:()=>44,oosCount:()=>OOS_DATA.amz_ca.filter(r=>r.status==='OOS').length,avgDOS:()=>avgDOS(AMZ_CA,r=>r.total,r=>r.daily),atRisk:()=>atRisk(AMZ_CA,r=>r.total,r=>r.daily),
+   skus:()=>44,oosCount:()=>computeAlerts().amz_ca.filter(r=>r.status==='OOS'||r.status==='Critical <7d').length,avgDOS:()=>avgDOS(AMZ_CA,r=>r.total,r=>r.daily),atRisk:()=>atRisk(AMZ_CA,r=>r.total,r=>r.daily),
    badge:()=>'bg',badgeLbl:()=>'Healthy',
    html:()=>buildTbl('amz-ca',AMZ_CA,['sku','name'],amzRow,['SKU / Product','Daily (Flieber)','FBA available','Inbound to AMZ','Total FBA','Flieber N45D','DOS'])},
   {id:'shopify',label:'Shopify (DTC)',color:'#95bf47',live:true,
-   skus:()=>202,oosCount:()=>OOS_DATA.shopify.filter(r=>r.status==='OOS').length,avgDOS:()=>null,atRisk:()=>Object.keys(D.shopify).filter(s=>{const d=D.shopify[s];return d>0&&(WH[s]||0)/d<30;}).length,
+   skus:()=>202,oosCount:()=>computeAlerts().shopify.filter(r=>r.status==='OOS'||r.status==='Critical <7d').length,avgDOS:()=>null,atRisk:()=>Object.keys(D.shopify).filter(s=>{const d=D.shopify[s];return d>0&&(WH[s]||0)/d<30;}).length,
    badge:()=>'bg',badgeLbl:()=>'Via WH 240',
    html:()=>`<div class="nb">Fulfilled from WH 240. Velocities live from Flieber (Mighty Paw-Shopify-US). Use the WH 240 Allocation tab to see per-SKU coverage.</div>${buildTbl('shopify',Object.entries(D.shopify).filter(([s,d])=>d>0).sort((a,b)=>b[1]-a[1]).map(([s,d])=>({sku:s,daily_velocity:d,forecast_n45d:Math.round(d*45)})),['sku'],r=>flRow('shopify',r),['SKU / Product','Daily velocity (Flieber)','N45D forecast','WH 240 on hand','WH 240 coverage'])}` },
   {id:'chewy',label:'Chewy (Wholesale)',color:'#0066cc',live:true,
@@ -745,87 +745,134 @@ const CHANNEL_DEFS=[
    badge:()=>'bx',badgeLbl:()=>'No inv data',
    html:()=>`<div class="nb">Wholesale channel. Velocities live from Flieber (Mighty Paw-CHEWY-US). Fulfilled from WH 240.</div>${buildTbl('chewy',Object.entries(D.chewy).filter(([s,d])=>d>0).sort((a,b)=>b[1]-a[1]).map(([s,d])=>({sku:s,daily_velocity:d,forecast_n45d:Math.round(d*45)})),['sku'],r=>flRow('chewy',r),['SKU / Product','Daily velocity (Flieber)','N45D forecast','WH 240 on hand','WH 240 coverage'])}` },
   {id:'tiktok',label:'TikTok (FBT + Samples)',color:'#111',live:true,
-   skus:()=>80,oosCount:()=>OOS_DATA.tiktok.filter(r=>r.status==='OOS').length,avgDOS:()=>avgDOS(TT.filter(r=>r.avail>0),r=>r.avail,r=>r.daily7),atRisk:()=>atRisk(TT.filter(r=>r.avail>0),r=>r.avail,r=>r.daily7),
+   skus:()=>80,oosCount:()=>computeAlerts().tiktok.filter(r=>r.status==='OOS'||r.status==='Critical <7d').length,avgDOS:()=>avgDOS(TT.filter(r=>r.avail>0),r=>r.avail,r=>r.daily7),atRisk:()=>atRisk(TT.filter(r=>r.avail>0),r=>r.avail,r=>r.daily7),
    badge:()=>'by',badgeLbl:()=>'Mixed stock',
    html:()=>buildTbl('tiktok',TT,['sku','name'],ttRow,['SKU / Product','Daily (Flieber)','FBT available','Inbound','Total FBT','DOS'])},
   {id:'walmart',label:'Walmart 3P',color:'#0071ce',live:true,
-   skus:()=>119,oosCount:()=>OOS_DATA.walmart.filter(r=>r.status==='OOS').length,avgDOS:()=>avgDOS(WM,r=>r.avail,r=>r.daily),atRisk:()=>atRisk(WM,r=>r.avail,r=>r.daily),
+   skus:()=>119,oosCount:()=>computeAlerts().walmart.filter(r=>r.status==='OOS'||r.status==='Critical <7d').length,avgDOS:()=>avgDOS(WM,r=>r.avail,r=>r.daily),atRisk:()=>atRisk(WM,r=>r.avail,r=>r.daily),
    badge:()=>{const d=avgDOS(WM,r=>r.avail,r=>r.daily);return d<30?'br':d<45?'by':'bg'},badgeLbl:()=>{const d=avgDOS(WM,r=>r.avail,r=>r.daily);return d<30?'At risk':d<45?'Watch':'Healthy'},
    html:()=>buildTbl('walmart',WM,['sku','name'],wmRow,['SKU / Product','Daily (Flieber)','WMT available','Inbound','Total WMT','Flieber N45D','DOS'])},
   {id:'target',label:'Target+',color:'#cc0000',live:true,
-   skus:()=>47,oosCount:()=>OOS_DATA.target.filter(r=>r.status==='OOS').length,avgDOS:()=>null,atRisk:()=>TGT.filter(r=>r.inv<10).length,
+   skus:()=>47,oosCount:()=>computeAlerts().target.filter(r=>r.status==='OOS'||r.status==='Critical <7d').length,avgDOS:()=>null,atRisk:()=>TGT.filter(r=>r.inv<10).length,
    badge:()=>{const r=TGT.filter(r=>r.inv<10).length;return r>3?'by':'bg'},badgeLbl:()=>{const r=TGT.filter(r=>r.inv<10).length;return r>0?r+' low stock':'Healthy'},
    html:()=>buildTbl('target',TGT,['sku','title'],tgtRow,['SKU / Product','Daily (Flieber)','DC Inventory','Inbound','Total','Flieber N45D','DOS'])},
 ];
 
 
-// ── OOS & AT-RISK DATA — live from po_inventory_performance_3pls ─────
-const OOS_DATA = {
-  amz_us: [
-    {sku:'TreatBag_Grey',name:'Treat Bag Grey',fba_avail:0,fba_inbound:0,fcst_m1:72,dos:null,status:'OOS'},
-    {sku:'LickBowl_Orange',name:'Dog Lick Bowl Orange',fba_avail:0,fba_inbound:0,fcst_m1:28,dos:null,status:'OOS'},
-    {sku:'ElkAntlerGNT_LRG_8_2pk',name:'Elk Antler Giant 8in 2 Pack',fba_avail:0,fba_inbound:0,fcst_m1:25,dos:null,status:'OOS'},
-    {sku:'leatherLeash_Brown',name:'Leather Leash Brown Standard',fba_avail:0,fba_inbound:0,fcst_m1:14,dos:null,status:'OOS'},
-    {sku:'CheeseSmall_12pk',name:'Yak Cheese Small 12 Pack',fba_avail:41,fba_inbound:150,fcst_m1:1037,dos:0.8,status:'Critical <7d'},
-    {sku:'TreatPouch2.0_Black',name:'Treat Pouch 2.0 Black',fba_avail:9,fba_inbound:1600,fcst_m1:874,dos:2.1,status:'Critical <7d'},
-    {sku:'BeefGulletJerky_14oz',name:'Beef Gullet Jerky 14oz',fba_avail:33,fba_inbound:30,fcst_m1:485,dos:0.5,status:'Critical <7d'},
-    {sku:'BullyStick_12in_JMB_5',name:'Bully Sticks 12in Jumbo 5 Pack',fba_avail:3,fba_inbound:1,fcst_m1:248,dos:0,status:'Critical <7d'},
-    {sku:'Collagen_8pk_Var',name:'Collagen Sticks Variety 8 Pack',fba_avail:31,fba_inbound:0,fcst_m1:219,dos:0.5,status:'Critical <7d'},
-    {sku:'BeefGullet_30pk_6in',name:'Beef Gullet Chews 30pk 6in',fba_avail:21,fba_inbound:0,fcst_m1:192,dos:0.2,status:'Critical <7d'},
-    {sku:'PeanutButter_Nat_2pk',name:'Peanut Butter 2 Pack',fba_avail:23,fba_inbound:324,fcst_m1:182,dos:5.7,status:'Critical <7d'},
-    {sku:'CheesePuff_8oz',name:'Yak Cheese Puffs 8oz',fba_avail:15,fba_inbound:0,fcst_m1:176,dos:0.1,status:'Critical <7d'},
-    {sku:'Leath_Leash_6ft_Clip',name:'Leather Leash 6ft Clip',fba_avail:23,fba_inbound:0,fcst_m1:157,dos:0.6,status:'Critical <7d'},
-    {sku:'DoubleDogLeash_WithHandle',name:'Double Dog Leash With Handle',fba_avail:23,fba_inbound:2,fcst_m1:134,dos:0.6,status:'Critical <7d'},
-    {sku:'Grey_Run_Leash',name:'Hands Free Leash 3ft Grey',fba_avail:8,fba_inbound:0,fcst_m1:26,dos:0.4,status:'Critical <7d'},
-    {sku:'RetLeash2.0_Or_Lite',name:'Retractable Leash 2.0 Orange Lite',fba_avail:330,fba_inbound:72,fcst_m1:905,dos:18.8,status:'At Risk <30d'},
-    {sku:'BullyStick_12in_Curls_5',name:'Bully Stick Curls 10-12in 5 Pack',fba_avail:245,fba_inbound:303,fcst_m1:796,dos:23.3,status:'At Risk <30d'},
-    {sku:'TreatPouch2.0_Grey',name:'Treat Pouch 2.0 Grey',fba_avail:194,fba_inbound:52,fcst_m1:600,dos:13.6,status:'At Risk <30d'},
-    {sku:'ElkAntlerTHK_MED_6_2pk',name:'Elk Antler Medium 6in 2 Pack',fba_avail:119,fba_inbound:50,fcst_m1:218,dos:20.5,status:'At Risk <30d'},
-    {sku:'CalmingChews_120_2pk',name:'Calming Chews 2 Pack',fba_avail:92,fba_inbound:6,fcst_m1:116,dos:9.3,status:'At Risk <30d'},
-    {sku:'PoopBagHolder_Grey',name:'Poop Bag Holder Grey',fba_avail:65,fba_inbound:0,fcst_m1:85,dos:7.9,status:'At Risk <30d'},
-    {sku:'9N-LZU6-VXAP',name:'Hands Free Bungee Leash Black',fba_avail:81,fba_inbound:0,fcst_m1:46,dos:25.1,status:'At Risk <30d'},
-    {sku:'leather_brown_medium',name:'Leather Collar Brown Medium',fba_avail:56,fba_inbound:25,fcst_m1:58,dos:11.8,status:'At Risk <30d'},
-  ],
-  amz_ca: [
-    {sku:'RetLeash2.0_Or_Std',name:'Retractable Leash 2.0 Orange Std',fba_avail:0,fba_inbound:0,fcst_m1:26,dos:null,status:'OOS'},
-    {sku:'LickBowl_Orange',name:'Dog Lick Bowl Orange',fba_avail:0,fba_inbound:0,fcst_m1:21,dos:null,status:'OOS'},
-    {sku:'CheeseSmall_12pk',name:'Yak Cheese Small 12 Pack',fba_avail:7,fba_inbound:0,fcst_m1:383,dos:0,status:'Critical <7d'},
-    {sku:'ChewProof_Leash6_O',name:'Chew-Proof Leash 6ft Orange',fba_avail:22,fba_inbound:0,fcst_m1:16,dos:5.0,status:'Critical <7d'},
-    {sku:'SlowFeed_M_O',name:'Slow Feed Bowl Medium Orange',fba_avail:4,fba_inbound:10,fcst_m1:10,dos:0.9,status:'Critical <7d'},
-    {sku:'RetLeash3.0_Or_Std_wPD',name:'Retractable 3.0 Orange Std + Bags',fba_avail:106,fba_inbound:96,fcst_m1:125,dos:27.0,status:'At Risk <30d'},
-    {sku:'CarRestraint_Bl',name:'Car Headrest Seat Belt',fba_avail:125,fba_inbound:0,fcst_m1:81,dos:27.4,status:'At Risk <30d'},
-    {sku:'RetLeash3.0_Gr_Lite_wPD',name:'Retractable 3.0 Green Lite + Bags',fba_avail:64,fba_inbound:48,fcst_m1:59,dos:20.3,status:'At Risk <30d'},
-    {sku:'CheckCord_Or_30',name:'Check Cord 30ft Orange',fba_avail:21,fba_inbound:25,fcst_m1:18,dos:7.9,status:'At Risk <30d'},
-  ],
-  shopify: [
-    {sku:'Collagen_8pk_Var',name:'Collagen Sticks Variety 8 Pack',wh:WH['Collagen_8pk_Var']||0,daily:10.592,dos:0,status:'OOS'},
-    {sku:'BeefGulletJerky_14oz',name:'Beef Gullet Jerky 14oz',wh:WH['BeefGulletJerky_14oz']||0,daily:5.36,dos:0,status:'OOS'},
-  ],
-  chewy: [],
-  walmart: [
-    {sku:'760-00525',name:'Scooting Chews 120ct',avail:22,dos:21,status:'At Risk <30d'},
-    {sku:'CheesePuff_8oz',name:'Yak Cheese Puffs 8oz',avail:17,dos:20,status:'At Risk <30d'},
-    {sku:'DoubleDogLeash_WithHandle',name:'Double Dog Leash With Handle',avail:4,dos:11,status:'At Risk <30d'},
-    {sku:'TrafficHandle_Grey30',name:'Traffic Handle Leash 30in',avail:1,dos:5,status:'OOS'},
-  ],
-  tiktok: [
-    {sku:'CheeseSmall_12pk',name:'Yak Cheese Small 12 Pack',avail:180,daily7:11,dos:16,status:'At Risk <30d'},
-    {sku:'CheeseLarge_8pk',name:'Yak Cheese Large 8 Pack',avail:313,daily7:7,dos:44,status:'At Risk <30d'},
-    {sku:'BeefGulletJerky_14oz',name:'Beef Gullet Jerky 14oz',avail:0,daily7:5,dos:null,status:'OOS'},
-    {sku:'CheeseMed_12pk',name:'Yak Cheese Medium 12 Pack',avail:0,daily7:10,dos:null,status:'OOS'},
-    {sku:'BeefGullet_30pk_6in',name:'Beef Gullet Chews 30pk 6in',avail:0,daily7:0,dos:null,status:'OOS'},
-    {sku:'Collagen_8pk_Var',name:'Collagen Sticks Variety 8 Pack',avail:0,daily7:0,dos:null,status:'OOS'},
-  ],
-  target: [
-    {sku:'TieOut_Cable_30_Bl_M',name:'Tie-Out Cable 30ft Medium',inv:9,dos:9,status:'At Risk <30d'},
-    {sku:'CarRestraint_Bl',name:'Car Seatbelt Restraint',inv:12,dos:null,status:'At Risk <30d'},
-    {sku:'ChewProof_Leash6_G',name:'Chew-Proof Leash 6ft Green',inv:13,dos:null,status:'At Risk <30d'},
-    {sku:'Collagen_8pk_Var',name:'Collagen Sticks Variety 8 Pack',inv:0,dos:null,status:'OOS'},
-    {sku:'BeefGullet_30pk_6in',name:'Beef Gullet Sticks 30pk 6in',inv:6,dos:null,status:'At Risk <30d'},
-    {sku:'BullyBraided_5pk_Var',name:'Braided Bully Sticks 5pk Variety',inv:4,dos:null,status:'At Risk <30d'},
-    {sku:'CheeseLarge_8pk',name:'Yak Cheese Large 8 Pack',inv:17,dos:null,status:'At Risk <30d'},
-  ]
-};
+// ── OOS & AT-RISK DATA — computed dynamically from live data ─────────
+// Thresholds: OOS = 0 total inventory, Critical = <7d DOS, At Risk = <30d DOS
+// Each channel uses its own inventory source (same data as By Channel tab)
+
+function computeAlerts(){
+  const OOS={amz_us:[],amz_ca:[],shopify:[],chewy:[],walmart:[],tiktok:[],target:[]};
+
+  // ── Amazon US: use AMZ_US array (avail + inbound = total, daily = Flieber velocity) ──
+  AMZ_US.forEach(r=>{
+    const dos = r.daily>0 ? r.total/r.daily : null;
+    if(dos===null||dos<30){
+      const status = r.total===0?'OOS':dos<7?'Critical <7d':'At Risk <30d';
+      OOS.amz_us.push({
+        sku:r.sku, name:r.name,
+        fba_avail:r.avail, fba_inbound:r.inbound, total:r.total,
+        daily:r.daily, fcst_m1:Math.round(r.daily*30),
+        dos:dos!==null?Math.round(dos*10)/10:null, status
+      });
+    }
+  });
+  // Sort: OOS first, then Critical, then At Risk, then by DOS asc
+  const statusOrder={OOS:0,'Critical <7d':1,'At Risk <30d':2};
+  OOS.amz_us.sort((a,b)=>statusOrder[a.status]-statusOrder[b.status]||(a.dos??999)-(b.dos??999));
+
+  // ── Amazon CA: use AMZ_CA array ──
+  AMZ_CA.forEach(r=>{
+    const dos = r.daily>0 ? r.total/r.daily : null;
+    if(dos===null||dos<30){
+      const status = r.total===0?'OOS':dos<7?'Critical <7d':'At Risk <30d';
+      OOS.amz_ca.push({
+        sku:r.sku, name:r.name,
+        fba_avail:r.avail, fba_inbound:r.inbound, total:r.total,
+        daily:r.daily, fcst_m1:Math.round(r.daily*30),
+        dos:dos!==null?Math.round(dos*10)/10:null, status
+      });
+    }
+  });
+  OOS.amz_ca.sort((a,b)=>statusOrder[a.status]-statusOrder[b.status]||(a.dos??999)-(b.dos??999));
+
+  // ── Shopify: WH 240 on hand vs Flieber velocity ──
+  Object.entries(D.shopify).forEach(([sku,daily])=>{
+    if(daily<=0)return;
+    const wh=WH[sku]||0;
+    const dos=wh/daily;
+    if(dos<30){
+      const status=wh===0?'OOS':dos<7?'Critical <7d':'At Risk <30d';
+      OOS.shopify.push({sku,name:nm(sku),wh,daily,dos:Math.round(dos*10)/10,status});
+    }
+  });
+  OOS.shopify.sort((a,b)=>statusOrder[a.status]-statusOrder[b.status]||(a.dos??999)-(b.dos??999));
+
+  // ── Chewy: WH 240 on hand vs Flieber velocity ──
+  Object.entries(D.chewy).forEach(([sku,daily])=>{
+    if(daily<=0)return;
+    const wh=WH[sku]||0;
+    const dos=wh/daily;
+    if(dos<30){
+      const status=wh===0?'OOS':dos<7?'Critical <7d':'At Risk <30d';
+      OOS.chewy.push({sku,name:nm(sku),wh,daily,dos:Math.round(dos*10)/10,status});
+    }
+  });
+  OOS.chewy.sort((a,b)=>statusOrder[a.status]-statusOrder[b.status]||(a.dos??999)-(b.dos??999));
+
+  // ── Walmart: use WM array (avail + inbound, Flieber daily) ──
+  WM.forEach(r=>{
+    const total=(r.avail||0)+(r.inbound||0);
+    const dos=r.daily>0?total/r.daily:null;
+    if(dos===null||dos<30){
+      const status=total===0?'OOS':dos<7?'Critical <7d':'At Risk <30d';
+      OOS.walmart.push({
+        sku:r.sku, name:r.name,
+        avail:r.avail||0, inbound:r.inbound||0, total,
+        daily:r.daily, fcst_m1:Math.round(r.daily*30),
+        dos:dos!==null?Math.round(dos*10)/10:null, status
+      });
+    }
+  });
+  OOS.walmart.sort((a,b)=>statusOrder[a.status]-statusOrder[b.status]||(a.dos??999)-(b.dos??999));
+
+  // ── TikTok: use TT array (avail + inbound, daily7 velocity) ──
+  TT.forEach(r=>{
+    const total=(r.avail||0)+(r.inbound||0);
+    const dos=r.daily7>0?total/r.daily7:null;
+    if(dos===null||dos<30){
+      const status=total===0?'OOS':dos<7?'Critical <7d':'At Risk <30d';
+      OOS.tiktok.push({
+        sku:r.sku, name:r.name,
+        avail:r.avail||0, inbound:r.inbound||0, total,
+        daily7:r.daily7,
+        dos:dos!==null?Math.round(dos*10)/10:null, status
+      });
+    }
+  });
+  OOS.tiktok.sort((a,b)=>statusOrder[a.status]-statusOrder[b.status]||(a.dos??999)-(b.dos??999));
+
+  // ── Target+: use TGT array (inv, Flieber D.target velocity) ──
+  TGT.forEach(r=>{
+    const vel=D.target[r.sku]||0;
+    const total=(r.inv||0)+(r.inbound||0);
+    const dos=vel>0?total/vel:null;
+    if(total<20||dos===null||dos<30){
+      const status=total===0?'OOS':dos!==null&&dos<7?'Critical <7d':'At Risk <30d';
+      OOS.target.push({
+        sku:r.sku, name:r.title||nm(r.sku),
+        inv:r.inv||0, inbound:r.inbound||0, total,
+        daily:vel,
+        dos:dos!==null?Math.round(dos*10)/10:null, status
+      });
+    }
+  });
+  OOS.target.sort((a,b)=>statusOrder[a.status]-statusOrder[b.status]||(a.dos??999)-(b.dos??999));
+
+  return OOS;
+}
 
 function initCh(id){
   const fn={amz_us:amzRow,'amz-us':amzRow,amz_ca:amzRow,'amz-ca':amzRow,walmart:wmRow,tiktok:ttRow,target:tgtRow};
@@ -851,70 +898,100 @@ function renderScorecard(){
 
 // ── ALERT SUMMARY ─────────────────────────────────────────────────────
 function renderAlertTab(){
+  const OOS_DATA = computeAlerts();
+
   const chMap=[
     {id:'amz_us',label:'Amazon US (FBA)',color:'#1a5fa8',
      rows:()=>OOS_DATA.amz_us,
      rowFn:(r)=>`<tr>
-       <td class="col-sku">${skuCell(r.sku,r.name)}</td>
-       <td class="col-num r">${r.fba_avail}</td>
-       <td class="col-num r" style="color:var(--blue)">${r.fba_inbound}</td>
-       <td class="col-num r" style="font-weight:600">${r.fba_avail+r.fba_inbound}</td>
-       <td class="col-num r">${r.fcst_m1.toLocaleString()}</td>
-       <td class="col-dos">${statusPill(r.status,r.dos)}</td>
+       <td>${skuCell(r.sku,r.name)}</td>
+       <td style="text-align:right">${r.fba_avail.toLocaleString()}</td>
+       <td style="text-align:right;color:var(--blue)">${r.fba_inbound.toLocaleString()}</td>
+       <td style="text-align:right;font-weight:600">${r.total.toLocaleString()}</td>
+       <td style="text-align:right">${r.daily.toFixed(1)}/d</td>
+       <td style="text-align:right">${statusPill(r.status,r.dos)}</td>
      </tr>`,
-     hdrs:['SKU / Product','FBA Available','Inbound','Total FBA','Month Fcst','Status']},
+     hdrs:['SKU / Product','FBA Available','Inbound','Total FBA','Daily','Status']},
     {id:'amz_ca',label:'Amazon CA (FBA)',color:'#2176b5',
      rows:()=>OOS_DATA.amz_ca,
      rowFn:(r)=>`<tr>
-       <td class="col-sku">${skuCell(r.sku,r.name)}</td>
-       <td class="col-num r">${r.fba_avail}</td>
-       <td class="col-num r" style="color:var(--blue)">${r.fba_inbound}</td>
-       <td class="col-num r" style="font-weight:600">${r.fba_avail+r.fba_inbound}</td>
-       <td class="col-num r">${r.fcst_m1.toLocaleString()}</td>
-       <td class="col-dos">${statusPill(r.status,r.dos)}</td>
+       <td>${skuCell(r.sku,r.name)}</td>
+       <td style="text-align:right">${r.fba_avail.toLocaleString()}</td>
+       <td style="text-align:right;color:var(--blue)">${r.fba_inbound.toLocaleString()}</td>
+       <td style="text-align:right;font-weight:600">${r.total.toLocaleString()}</td>
+       <td style="text-align:right">${r.daily.toFixed(1)}/d</td>
+       <td style="text-align:right">${statusPill(r.status,r.dos)}</td>
      </tr>`,
-     hdrs:['SKU / Product','FBA Available','Inbound','Total FBA','Month Fcst','Status']},
+     hdrs:['SKU / Product','FBA Available','Inbound','Total FBA','Daily','Status']},
     {id:'shopify',label:'Shopify (DTC)',color:'#95bf47',
      rows:()=>OOS_DATA.shopify,
-     rowFn:(r)=>`<tr><td class="col-sku">${skuCell(r.sku,r.name)}</td><td class="col-num r">${r.wh}</td><td class="col-num r">${r.daily.toFixed(2)}</td><td class="col-dos">${statusPill(r.status,r.dos)}</td></tr>`,
+     rowFn:(r)=>`<tr>
+       <td>${skuCell(r.sku,r.name)}</td>
+       <td style="text-align:right">${r.wh.toLocaleString()}</td>
+       <td style="text-align:right">${r.daily.toFixed(2)}/d</td>
+       <td style="text-align:right">${statusPill(r.status,r.dos)}</td>
+     </tr>`,
      hdrs:['SKU / Product','WH 240 on hand','Daily velocity','Status']},
     {id:'chewy',label:'Chewy (Wholesale)',color:'#0066cc',
      rows:()=>OOS_DATA.chewy,
-     rowFn:()=>'',hdrs:[]},
+     rowFn:(r)=>`<tr>
+       <td>${skuCell(r.sku,r.name)}</td>
+       <td style="text-align:right">${r.wh.toLocaleString()}</td>
+       <td style="text-align:right">${r.daily.toFixed(2)}/d</td>
+       <td style="text-align:right">${statusPill(r.status,r.dos)}</td>
+     </tr>`,
+     hdrs:['SKU / Product','WH 240 on hand','Daily velocity','Status']},
     {id:'walmart',label:'Walmart 3P',color:'#0071ce',
      rows:()=>OOS_DATA.walmart,
-     rowFn:(r)=>`<tr><td class="col-sku">${skuCell(r.sku,r.name)}</td><td class="col-num r">${r.avail}</td><td class="col-dos">${statusPill(r.status,r.dos)}</td></tr>`,
-     hdrs:['SKU / Product','Available units','Status']},
+     rowFn:(r)=>`<tr>
+       <td>${skuCell(r.sku,r.name)}</td>
+       <td style="text-align:right">${r.avail.toLocaleString()}</td>
+       <td style="text-align:right;color:var(--blue)">${r.inbound.toLocaleString()}</td>
+       <td style="text-align:right;font-weight:600">${r.total.toLocaleString()}</td>
+       <td style="text-align:right">${r.daily.toFixed(1)}/d</td>
+       <td style="text-align:right">${statusPill(r.status,r.dos)}</td>
+     </tr>`,
+     hdrs:['SKU / Product','Available','Inbound','Total','Daily','Status']},
     {id:'tiktok',label:'TikTok (FBT + Samples)',color:'#111',
      rows:()=>OOS_DATA.tiktok,
-     rowFn:(r)=>`<tr><td class="col-sku">${skuCell(r.sku,r.name)}</td><td class="col-num r">${r.avail}</td><td class="col-num r">${r.daily7}</td><td class="col-dos">${statusPill(r.status,r.dos)}</td></tr>`,
-     hdrs:['SKU / Product','FBT Available','Daily (L7D)','Status']},
+     rowFn:(r)=>`<tr>
+       <td>${skuCell(r.sku,r.name)}</td>
+       <td style="text-align:right">${r.avail.toLocaleString()}</td>
+       <td style="text-align:right;color:var(--blue)">${r.inbound.toLocaleString()}</td>
+       <td style="text-align:right;font-weight:600">${r.total.toLocaleString()}</td>
+       <td style="text-align:right">${r.daily7.toFixed(1)}/d</td>
+       <td style="text-align:right">${statusPill(r.status,r.dos)}</td>
+     </tr>`,
+     hdrs:['SKU / Product','FBT Available','Inbound','Total FBT','Daily (L7D)','Status']},
     {id:'target',label:'Target+',color:'#cc0000',
      rows:()=>OOS_DATA.target,
-     rowFn:(r)=>`<tr><td class="col-sku">${skuCell(r.sku,r.name)}</td><td class="col-num r">${r.inv}</td><td class="col-dos">${statusPill(r.status,r.dos)}</td></tr>`,
-     hdrs:['SKU / Product','DC Inventory','Status']},
+     rowFn:(r)=>`<tr>
+       <td>${skuCell(r.sku,r.name)}</td>
+       <td style="text-align:right">${r.inv.toLocaleString()}</td>
+       <td style="text-align:right">${r.daily>0?r.daily.toFixed(2)+'/d':'—'}</td>
+       <td style="text-align:right">${statusPill(r.status,r.dos)}</td>
+     </tr>`,
+     hdrs:['SKU / Product','DC Inventory','Daily velocity','Status']},
   ];
 
-  let html='';
-  // Overall summary
   let totalOOS=0,totalRisk=0;
   chMap.forEach(ch=>{
     const rows=ch.rows();
-    const oos=rows.filter(r=>r.status==='OOS').length;
-    const risk=rows.filter(r=>r.status!=='OOS').length;
-    totalOOS+=oos;totalRisk+=risk;
+    totalOOS+=rows.filter(r=>r.status==='OOS'||r.status==='Critical <7d').length;
+    totalRisk+=rows.filter(r=>r.status==='At Risk <30d').length;
   });
-  html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
-    <div class="mc"><div class="mc-lbl">Total OOS SKUs</div><div class="mc-val" style="color:var(--red)">${totalOOS}</div><div class="mc-sub">zero inventory across all channels</div></div>
-    <div class="mc"><div class="mc-lbl">Total At Risk SKUs</div><div class="mc-val" style="color:var(--amber)">${totalRisk}</div><div class="mc-sub">DOS &lt;30 days</div></div>
+
+  let html=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">
+    <div class="mc"><div class="mc-lbl">OOS or Critical SKUs</div><div class="mc-val" style="color:var(--red)">${totalOOS}</div><div class="mc-sub">zero inventory or &lt;7d DOS</div></div>
+    <div class="mc"><div class="mc-lbl">At Risk SKUs</div><div class="mc-val" style="color:var(--amber)">${totalRisk}</div><div class="mc-sub">7–30d DOS across all channels</div></div>
     <div class="mc"><div class="mc-lbl">Channels affected</div><div class="mc-val">${chMap.filter(ch=>ch.rows().length>0).length}</div><div class="mc-sub">out of 7 channels</div></div>
   </div>`;
 
   chMap.forEach(ch=>{
     const rows=ch.rows();
-    const oos=rows.filter(r=>r.status==='OOS').length;
-    const risk=rows.filter(r=>r.status!=='OOS').length;
-    const badges=`${oos>0?`<span class="alert-badge oos-badge">${oos} OOS</span>`:''}${risk>0?`<span class="alert-badge risk-badge" style="margin-left:4px">${risk} At Risk</span>`:''}${oos===0&&risk===0?`<span class="alert-badge ok-badge">All Clear</span>`:''}`;
+    const oos=rows.filter(r=>r.status==='OOS'||r.status==='Critical <7d').length;
+    const risk=rows.filter(r=>r.status==='At Risk <30d').length;
+    const badges=`${oos>0?`<span class="alert-badge oos-badge">${oos} OOS/Critical</span>`:''}${risk>0?`<span class="alert-badge risk-badge" style="margin-left:4px">${risk} At Risk</span>`:''}${oos===0&&risk===0?`<span class="alert-badge ok-badge">All Clear</span>`:''}`;
     html+=`<div class="alert-ch-block">
       <div class="alert-ch-hdr">
         <span class="ch-dot" style="background:${ch.color}"></span>
@@ -922,9 +999,12 @@ function renderAlertTab(){
         ${badges}
       </div>`;
     if(rows.length===0){
-      html+=`<div class="alert-no-issues">No OOS or at-risk SKUs detected.</div>`;
+      html+=`<div class="alert-no-issues">✓ No OOS or at-risk SKUs detected.</div>`;
     } else {
-      html+=`<div style="overflow-x:auto"><table class="t" style="background:var(--white)"><colgroup><col style="width:220px">${ch.hdrs.slice(1,-1).map(()=>`<col style="width:100px">`).join('')}<col style="width:130px"></colgroup><thead><tr>${ch.hdrs.map((h,i)=>`<th${i>0?' class="r"':''}>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(ch.rowFn).join('')}</tbody></table></div>`;
+      const n=ch.hdrs.length;
+      const skuPct=35;const dosPct=18;const midPct=n>2?Math.floor((100-skuPct-dosPct)/(n-2)):0;
+      const cols=ch.hdrs.map((_,i)=>i===0?`<col style="width:${skuPct}%">`:i===n-1?`<col style="width:${dosPct}%">`:`<col style="width:${midPct}%">`).join('');
+      html+=`<div style="overflow-x:auto;min-width:0"><table class="t" style="background:var(--white);min-width:500px"><colgroup>${cols}</colgroup><thead><tr>${ch.hdrs.map((h,i)=>`<th style="text-align:${i===0?'left':'right'}">${h}</th>`).join('')}</tr></thead><tbody>${rows.map(ch.rowFn).join('')}</tbody></table></div>`;
     }
     html+=`</div>`;
   });
