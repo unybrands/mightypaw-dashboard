@@ -121,6 +121,7 @@ table.t{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
 .oos-badge{background:var(--red-light);color:var(--red)}
 .risk-badge{background:var(--amber-light);color:var(--amber)}
 .ok-badge{background:var(--green-light);color:var(--green)}
+.note-inp{width:100%;box-sizing:border-box;border:1px solid var(--gray-200);border-radius:4px;padding:4px 7px;font-size:11px;font-family:'DM Sans',sans-serif;color:var(--gray-700);background:var(--white);outline:none;}.note-inp:focus{border-color:var(--blue);box-shadow:0 0 0 2px rgba(26,95,168,.12);}
 .alert-no-issues{padding:16px 18px;font-size:12px;color:var(--gray-400);font-style:italic}
 .surplus-bar{height:8px;background:var(--gray-100);border-radius:4px;overflow:hidden;margin-top:4px}
 .surplus-fill{height:100%;border-radius:4px;background:var(--green-mid)}
@@ -237,7 +238,8 @@ table.t{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
 <div id="tab-alert" class="tab-content">
   <div class="sec">Leadership alert summary — OOS &amp; at-risk SKUs by channel</div>
   <div class="nb">SKUs flagged as Out of Stock (zero available inventory) or At Risk (DOS &lt;30d). Amazon US/CA data live from BigQuery. Other channels based on uploaded inventory files.</div>
-  <div id="alert-content"></div>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button onclick="exportAlerts()" style="background:var(--blue);color:#fff;border:none;border-radius:var(--radius);padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">&#8659; Export to CSV</button></div>
+<div id="alert-content"></div>
 </div>
 
 <!-- IMPORT -->
@@ -895,6 +897,39 @@ function renderScorecard(){
 
 
 // ── ALERT SUMMARY ─────────────────────────────────────────────────────
+function exportAlerts(){
+  const OOS_DATA=computeAlerts();
+  const chMap=[
+    {id:'amz_us',label:'Amazon US'},
+    {id:'amz_ca',label:'Amazon CA'},
+    {id:'shopify',label:'Shopify'},
+    {id:'chewy',label:'Chewy'},
+    {id:'walmart',label:'Walmart'},
+    {id:'tiktok',label:'TikTok'},
+    {id:'target',label:'Target'},
+  ];
+  const rows=[['Channel','SKU','ASIN','Product Name','Status','DOS (days)','Daily Velocity','Inventory','Notes']];
+  chMap.forEach(ch=>{
+    (OOS_DATA[ch.id]||[]).forEach(r=>{
+      const asin=ASIN_MAP[r.sku]||'';
+      const inv=r.total!==undefined?r.total:(r.wh!==undefined?r.wh:(r.inv!==undefined?r.inv:''));
+      const daily=r.daily!==undefined?r.daily.toFixed(2):(r.daily7!==undefined?r.daily7.toFixed(2):'');
+      const dos=r.dos!==null&&r.dos!==undefined?Math.round(r.dos):'OOS';
+      const note=getNote(ch.id,r.sku);
+      rows.push([ch.label,r.sku,asin,r.name||nm(r.sku),r.status,dos,daily,inv,note]);
+    });
+  });
+  const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='mighty_paw_alerts_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+const alertNotes={};
+function saveNote(ch,sku,val){alertNotes[ch+':'+sku]=val;}
+function getNote(ch,sku){return alertNotes[ch+':'+sku]||'';}
+
 function renderAlertTab(){
   const OOS_DATA = computeAlerts();
 
@@ -908,8 +943,9 @@ function renderAlertTab(){
        <td style="text-align:right;font-weight:600">${r.total.toLocaleString()}</td>
        <td style="text-align:right">${r.daily.toFixed(1)}/d</td>
        <td style="text-align:right">${statusPill(r.status,r.dos)}</td>
+       <td><input type="text" class="note-inp" placeholder="Add note…" value="${getNote('amz_us',r.sku)}" oninput="saveNote('amz_us','${r.sku}',this.value)"></td>
      </tr>`,
-     hdrs:['SKU / Product','FBA Available','Inbound','Total FBA','Daily','Status']},
+     hdrs:['SKU / Product','FBA Available','Inbound','Total FBA','Daily','Status','Notes']},
     {id:'amz_ca',label:'Amazon CA (FBA)',color:'#2176b5',
      rows:()=>OOS_DATA.amz_ca,
      rowFn:(r)=>`<tr>
@@ -919,8 +955,9 @@ function renderAlertTab(){
        <td style="text-align:right;font-weight:600">${r.total.toLocaleString()}</td>
        <td style="text-align:right">${r.daily.toFixed(1)}/d</td>
        <td style="text-align:right">${statusPill(r.status,r.dos)}</td>
+       <td><input type="text" class="note-inp" placeholder="Add note…" value="${getNote('amz_ca',r.sku)}" oninput="saveNote('amz_ca','${r.sku}',this.value)"></td>
      </tr>`,
-     hdrs:['SKU / Product','FBA Available','Inbound','Total FBA','Daily','Status']},
+     hdrs:['SKU / Product','FBA Available','Inbound','Total FBA','Daily','Status','Notes']},
     {id:'shopify',label:'Shopify (DTC)',color:'#95bf47',
      rows:()=>OOS_DATA.shopify,
      rowFn:(r)=>`<tr>
@@ -928,8 +965,9 @@ function renderAlertTab(){
        <td style="text-align:right">${r.wh.toLocaleString()}</td>
        <td style="text-align:right">${r.daily.toFixed(2)}/d</td>
        <td style="text-align:right">${statusPill(r.status,r.dos)}</td>
+       <td><input type="text" class="note-inp" placeholder="Add note…" value="${getNote('shopify',r.sku)}" oninput="saveNote('shopify','${r.sku}',this.value)"></td>
      </tr>`,
-     hdrs:['SKU / Product','WH 240 on hand','Daily velocity','Status']},
+     hdrs:['SKU / Product','WH 240 on hand','Daily velocity','Status','Notes']},
     {id:'chewy',label:'Chewy (Wholesale)',color:'#0066cc',
      rows:()=>OOS_DATA.chewy,
      rowFn:(r)=>`<tr>
@@ -937,8 +975,9 @@ function renderAlertTab(){
        <td style="text-align:right">${r.wh.toLocaleString()}</td>
        <td style="text-align:right">${r.daily.toFixed(2)}/d</td>
        <td style="text-align:right">${statusPill(r.status,r.dos)}</td>
+       <td><input type="text" class="note-inp" placeholder="Add note…" value="${getNote('chewy',r.sku)}" oninput="saveNote('chewy','${r.sku}',this.value)"></td>
      </tr>`,
-     hdrs:['SKU / Product','WH 240 on hand','Daily velocity','Status']},
+     hdrs:['SKU / Product','WH 240 on hand','Daily velocity','Status','Notes']},
     {id:'walmart',label:'Walmart 3P',color:'#0071ce',
      rows:()=>OOS_DATA.walmart,
      rowFn:(r)=>`<tr>
@@ -948,8 +987,9 @@ function renderAlertTab(){
        <td style="text-align:right;font-weight:600">${r.total.toLocaleString()}</td>
        <td style="text-align:right">${r.daily.toFixed(1)}/d</td>
        <td style="text-align:right">${statusPill(r.status,r.dos)}</td>
+       <td><input type="text" class="note-inp" placeholder="Add note…" value="${getNote('walmart',r.sku)}" oninput="saveNote('walmart','${r.sku}',this.value)"></td>
      </tr>`,
-     hdrs:['SKU / Product','Available','Inbound','Total','Daily','Status']},
+     hdrs:['SKU / Product','Available','Inbound','Total','Daily','Status','Notes']},
     {id:'tiktok',label:'TikTok (FBT + Samples)',color:'#111',
      rows:()=>OOS_DATA.tiktok,
      rowFn:(r)=>`<tr>
@@ -959,8 +999,9 @@ function renderAlertTab(){
        <td style="text-align:right;font-weight:600">${r.total.toLocaleString()}</td>
        <td style="text-align:right">${r.daily7.toFixed(1)}/d</td>
        <td style="text-align:right">${statusPill(r.status,r.dos)}</td>
+       <td><input type="text" class="note-inp" placeholder="Add note…" value="${getNote('tiktok',r.sku)}" oninput="saveNote('tiktok','${r.sku}',this.value)"></td>
      </tr>`,
-     hdrs:['SKU / Product','FBT Available','Inbound','Total FBT','Daily (L7D)','Status']},
+     hdrs:['SKU / Product','FBT Available','Inbound','Total FBT','Daily (L7D)','Status','Notes']},
     {id:'target',label:'Target+',color:'#cc0000',
      rows:()=>OOS_DATA.target,
      rowFn:(r)=>`<tr>
@@ -968,8 +1009,9 @@ function renderAlertTab(){
        <td style="text-align:right">${r.inv.toLocaleString()}</td>
        <td style="text-align:right">${r.daily>0?r.daily.toFixed(2)+'/d':'—'}</td>
        <td style="text-align:right">${statusPill(r.status,r.dos)}</td>
+       <td><input type="text" class="note-inp" placeholder="Add note…" value="${getNote('target',r.sku)}" oninput="saveNote('target','${r.sku}',this.value)"></td>
      </tr>`,
-     hdrs:['SKU / Product','DC Inventory','Daily velocity','Status']},
+     hdrs:['SKU / Product','DC Inventory','Daily velocity','Status','Notes']},
   ];
 
   let totalOOS=0,totalRisk=0;
