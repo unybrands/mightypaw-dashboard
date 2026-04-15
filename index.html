@@ -205,6 +205,7 @@ table.t{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
   <div class="ch-grid" id="ch-grid"></div>
   <div id="drill-panel" style="display:none" class="drill">
     <div class="drill-hdr"><div class="drill-ttl" id="drill-ttl">Detail</div><button class="drill-cls" onclick="closeDrill()">&#215;</button></div>
+    <div id="drill-filter" style="display:flex;gap:8px;flex-wrap:wrap;padding:10px 16px 4px 16px;border-bottom:1px solid var(--gray-100)"></div>
     <div class="drill-body" id="drill-body"></div>
   </div>
 </div>
@@ -1077,15 +1078,78 @@ function renderCards(){
     </div>`;
   }).join('');
 }
-function openDrill(id){
-  const ch=CHANNEL_DEFS.find(c=>c.id===id);if(!ch)return;
-  document.getElementById('drill-ttl').textContent=ch.label+' — SKU detail';
-  document.getElementById('drill-body').innerHTML=ch.html();
-  initCh(id.replace('_','-'));
-  document.querySelectorAll('.ch-card').forEach(c=>c.classList.remove('active'));
-  document.getElementById('card-'+id).classList.add('active');
-  document.getElementById('drill-panel').style.display='block';
-  setTimeout(()=>document.getElementById('drill-panel').scrollIntoView({behavior:'smooth',block:'nearest'}),60);
+var _drillId=null;
+function _drillPill(id,f,filter,oos,risk){
+  var label=f==="all"?"All SKUs":f==="oos"?"OOS / Critical ("+oos+")":"At Risk ("+risk+")";
+  var active=filter===f;
+  var bg=active?(f==="oos"?"var(--red)":f==="risk"?"var(--amber)":"var(--blue)"):"var(--white)";
+  var fc=active?"#fff":(f==="oos"?"var(--red)":f==="risk"?"var(--amber)":"var(--gray-700)");
+  var border=f==="all"?"var(--blue)":f==="oos"?"var(--red)":"var(--amber)";
+  var btn=document.createElement("button");
+  btn.textContent=label;
+  btn.style.background=bg;
+  btn.style.color=fc;
+  btn.style.border="1.5px solid "+border;
+  btn.style.borderRadius="20px";
+  btn.style.padding="5px 14px";
+  btn.style.fontSize="11px";
+  btn.style.fontWeight="600";
+  btn.style.cursor="pointer";
+  btn.style.fontFamily="DM Sans, sans-serif";
+  btn.style.whiteSpace="nowrap";
+  btn.onclick=function(){openDrill(id,f);};
+  return btn;
+}
+function openDrill(id,filter){
+  filter=filter||"all";
+  _drillId=id;
+  var ch=CHANNEL_DEFS.find(function(c){return c.id===id;});if(!ch)return;
+  var oos=ch.oosCount();
+  var risk=ch.atRisk();
+  var pf=document.getElementById("drill-filter");
+  pf.innerHTML="";
+  ["all","oos","risk"].forEach(function(f){pf.appendChild(_drillPill(id,f,filter,oos,risk));});
+  var rows=null;
+  if(id==="amz_us"){
+    rows=AMZ_US.filter(function(r){return !DISC_US.has(r.sku)&&!NO_ASIN.has(r.sku);});
+    if(filter==="oos")rows=rows.filter(function(r){return r.total===0||(r.daily>0&&r.total/r.daily<7);});
+    else if(filter==="risk")rows=rows.filter(function(r){var d=r.daily>0?r.total/r.daily:null;return d&&d>=7&&d<30;});
+  } else if(id==="amz_ca"){
+    rows=AMZ_CA.filter(function(r){return !DISC_CA.has(r.sku)&&!NO_ASIN.has(r.sku);});
+    if(filter==="oos")rows=rows.filter(function(r){return r.total===0||(r.daily>0&&r.total/r.daily<7);});
+    else if(filter==="risk")rows=rows.filter(function(r){var d=r.daily>0?r.total/r.daily:null;return d&&d>=7&&d<30;});
+  } else if(id==="walmart"){
+    rows=WM.filter(function(r){return !DISC_US.has(r.sku)&&!NO_ASIN.has(r.sku);});
+    if(filter==="oos")rows=rows.filter(function(r){var t=(r.avail||0)+(r.inbound||0);return t===0||(r.daily>0&&t/r.daily<7);});
+    else if(filter==="risk")rows=rows.filter(function(r){var t=(r.avail||0)+(r.inbound||0);var d=r.daily>0?t/r.daily:null;return d&&d>=7&&d<30;});
+  } else if(id==="tiktok"){
+    rows=TT.filter(function(r){return !DISC_US.has(r.sku)&&!NO_ASIN.has(r.sku);});
+    if(filter==="oos")rows=rows.filter(function(r){return !(r.avail||0);});
+    else if(filter==="risk")rows=rows.filter(function(r){var d=r.daily7>0?(r.avail||0)/r.daily7:null;return d&&d>=7&&d<30;});
+  } else if(id==="target"){
+    rows=TGT.filter(function(r){return !DISC_US.has(r.sku)&&!NO_ASIN.has(r.sku);});
+    if(filter==="oos")rows=rows.filter(function(r){return !(r.inv||0);});
+    else if(filter==="risk")rows=rows.filter(function(r){var vel=D.target[r.sku]||0;var d=vel>0?(r.inv||0)/vel:null;return d&&d>=7&&d<30;});
+  }
+  document.getElementById("drill-ttl").textContent=ch.label+" — SKU detail";
+  if(rows!==null){
+    var hdrMap={amz_us:["SKU / Product","Daily (Flieber)","FBA available","Inbound to AMZ","Total FBA","DOS"],amz_ca:["SKU / Product","Daily (Flieber)","FBA available","Inbound to AMZ","Total FBA","DOS"],walmart:["SKU / Product","Daily (Flieber)","WMT available","Inbound","Total WMT","DOS"],tiktok:["SKU / Product","Daily (Flieber)","FBT available","Inbound","Total FBT","DOS"],target:["SKU / Product","Daily (Flieber)","DC Inventory","Inbound","Total","DOS"]};
+    var rowFnMap={amz_us:amzRow,amz_ca:amzRow,walmart:wmRow,tiktok:ttRow,target:tgtRow};
+    var fieldMap={amz_us:["sku","name"],amz_ca:["sku","name"],walmart:["sku","name"],tiktok:["sku","name"],target:["sku","title"]};
+    document.getElementById("drill-body").innerHTML=buildTbl(id.replace("_","-"),rows,fieldMap[id],rowFnMap[id],hdrMap[id]);
+  } else {
+    var velData;
+    if(id==="shopify") velData=Object.entries(D.shopify).filter(function(e){return e[1]>0&&!DISC_US.has(e[0])&&!NO_ASIN.has(e[0]);}).sort(function(a,b){return b[1]-a[1];}).map(function(e){return{sku:e[0],daily_velocity:e[1],forecast_n45d:Math.round(e[1]*45)};});
+    else velData=Object.entries(D.chewy).filter(function(e){return e[1]>0&&!DISC_US.has(e[0])&&!NO_ASIN.has(e[0]);}).sort(function(a,b){return b[1]-a[1];}).map(function(e){return{sku:e[0],daily_velocity:e[1],forecast_n45d:Math.round(e[1]*45)};});
+    if(filter==="oos") velData=velData.filter(function(r){return (WH[r.sku]||0)===0;});
+    else if(filter==="risk") velData=velData.filter(function(r){var wh=WH[r.sku]||0;return wh>0&&r.daily_velocity>0&&wh/r.daily_velocity<30;});
+    document.getElementById("drill-body").innerHTML=buildTbl(id,velData,["sku"],function(r){return flRow(id,r);},["SKU / Product","Daily velocity (Flieber)","WH 240 on hand","WH 240 coverage"]);
+  }
+  initCh(id.replace("_","-"));
+  document.querySelectorAll(".ch-card").forEach(function(c){c.classList.remove("active");});
+  document.getElementById("card-"+id).classList.add("active");
+  document.getElementById("drill-panel").style.display="block";
+  setTimeout(function(){document.getElementById("drill-panel").scrollIntoView({behavior:"smooth",block:"nearest"});},60);
 }
 function closeDrill(){document.getElementById('drill-panel').style.display='none';document.querySelectorAll('.ch-card').forEach(c=>c.classList.remove('active'));}
 
