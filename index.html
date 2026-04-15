@@ -121,7 +121,6 @@ table.t{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
 .oos-badge{background:var(--red-light);color:var(--red)}
 .risk-badge{background:var(--amber-light);color:var(--amber)}
 .ok-badge{background:var(--green-light);color:var(--green)}
-.dfb{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--gray-700)}.dfb.active,.dfb:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
 .alert-no-issues{padding:16px 18px;font-size:12px;color:var(--gray-400);font-style:italic}
 .surplus-bar{height:8px;background:var(--gray-100);border-radius:4px;overflow:hidden;margin-top:4px}
 .surplus-fill{height:100%;border-radius:4px;background:var(--green-mid)}
@@ -360,7 +359,7 @@ const nm=s=>SKU_NAMES[s]||s.replace(/_/g,' ');
 const dc=d=>d===null?'dn':d<30?'dr':d<45?'dy':'dg';
 const dl=d=>d===null?'N/A':Math.round(d)+'d';
 const bar=d=>{if(d===null)return'';const p=Math.min(100,Math.round(d/90*100));const c=d<30?'pr2':d<45?'py2':'pg2';return`<div class="pb"><div class="pf ${c}" style="width:${p}%"></div></div>`;};
-const skuCell=(s,n)=>{var a=ASIN_MAP[s]||"";return'<div class="sku-c">'+s+(a?' <span style="font-size:9px;color:var(--gray-400);font-weight:400">'+a+'</span>':'')+'</div><div class="sku-n">'+(n||nm(s))+'</div>';}; 
+const skuCell=(s,n)=>{var a=ASIN_MAP[s]||"";return '<div class="sku-c">'+s+(a?' <span style="font-size:9px;color:var(--gray-400);font-weight:400">'+a+'</span>':'')+'</div><div class="sku-n">'+(n||nm(s))+'</div>';}; 
 const tblMap={};
 function filterTable(id,q,fields){const s=tblMap[id];if(!s)return;const l=q.toLowerCase();const rows=q?s.data.filter(r=>fields.some(f=>String(r[f]||'').toLowerCase().includes(l))):s.data;document.getElementById('tb-'+id).innerHTML=rows.map(s.fn).join('');document.getElementById('ct-'+id).textContent=rows.length+' / '+s.data.length+' SKUs';}
 function initTS(id,data,fields,fn){tblMap[id]={data,fields,fn};}
@@ -654,22 +653,12 @@ function filterAlloc(v){allocFilter=v;renderAllocTable();}
 // ── CHANNEL ROW BUILDERS ──────────────────────────────────────────────
 function amzRow(r){
   var d=r.daily>0?r.total/r.daily:null;
-  return'<tr><td>'+skuCell(r.sku,r.name)+'</td>'
-    +'<td style="text-align:right">'+r.daily.toFixed(1)+'</td>'
-    +'<td style="text-align:right">'+r.avail.toLocaleString()+'</td>'
-    +'<td style="text-align:right;color:var(--blue)">'+r.inbound.toLocaleString()+'</td>'
-    +'<td style="text-align:right;font-weight:600">'+r.total.toLocaleString()+'</td>'
-    +'<td class="col-dos">'+bar(d)+dl(d)+'</td></tr>';
+  return'<tr><td>'+skuCell(r.sku,r.name)+'</td>'+'<td style="text-align:right">'+r.daily.toFixed(1)+'</td>'+'<td style="text-align:right">'+r.avail.toLocaleString()+'</td>'+'<td style="text-align:right;color:var(--blue)">'+r.inbound.toLocaleString()+'</td>'+'<td style="text-align:right;font-weight:600">'+r.total.toLocaleString()+'</td>'+'<td class="col-dos">'+bar(d)+dl(d)+'</td></tr>';
 }
 
 function wmRow(r){
   var t=(r.avail||0)+(r.inbound||0);var d=r.daily>0?t/r.daily:null;
-  return'<tr><td>'+skuCell(r.sku,r.name)+'</td>'
-    +'<td style="text-align:right">'+r.daily.toFixed(1)+'</td>'
-    +'<td style="text-align:right">'+(r.avail||0).toLocaleString()+'</td>'
-    +'<td style="text-align:right;color:var(--blue)">'+(r.inbound||0).toLocaleString()+'</td>'
-    +'<td style="text-align:right;font-weight:600">'+t.toLocaleString()+'</td>'
-    +'<td class="col-dos">'+bar(d)+dl(d)+'</td></tr>';
+  return'<tr><td>'+skuCell(r.sku,r.name)+'</td>'+'<td style="text-align:right">'+r.daily.toFixed(1)+'</td>'+'<td style="text-align:right">'+(r.avail||0).toLocaleString()+'</td>'+'<td style="text-align:right;color:var(--blue)">'+(r.inbound||0).toLocaleString()+'</td>'+'<td style="text-align:right;font-weight:600">'+t.toLocaleString()+'</td>'+'<td class="col-dos">'+bar(d)+dl(d)+'</td></tr>';
 }
 
 function ttRow(r){
@@ -684,53 +673,44 @@ function ttRow(r){
     <td style="text-align:right"><span class="dp ${dc(ttDOS)}">${dl(ttDOS)}</span>${bar(ttDOS)}</td>
   </tr>`;}
 function tgtRow(r){
-  var vel=D.target[r.sku]||0;var inv=r.inv||0;var ib=r.inbound||0;var t=inv+ib;
-  var d=vel>0?t/vel:null;
-  return'<tr><td>'+skuCell(r.sku,r.title||r.name||nm(r.sku))+'</td>'
-    +'<td style="text-align:right">'+(vel>0?vel.toFixed(2):'—')+'</td>'
-    +'<td style="text-align:right">'+inv.toLocaleString()+'</td>'
-    +'<td style="text-align:right;color:var(--blue)">'+ib.toLocaleString()+'</td>'
-    +'<td style="text-align:right;font-weight:600">'+t.toLocaleString()+'</td>'
-    +'<td class="col-dos">'+bar(d)+dl(d)+'</td></tr>';
+  var vel=D.target[r.sku]||0;var inv=r.inv||0;var ib=r.inbound||0;var t=inv+ib;var d=vel>0?t/vel:null;
+  return'<tr><td>'+skuCell(r.sku,r.title||r.name||nm(r.sku))+'</td>'+'<td style="text-align:right">'+(vel>0?vel.toFixed(2):'—')+'</td>'+'<td style="text-align:right">'+inv.toLocaleString()+'</td>'+'<td style="text-align:right;color:var(--blue)">'+ib.toLocaleString()+'</td>'+'<td style="text-align:right;font-weight:600">'+t.toLocaleString()+'</td>'+'<td class="col-dos">'+bar(d)+dl(d)+'</td></tr>';
 }
 
 function flRow(ch,r){
   var d=r.daily_velocity||0;var wh=WH[r.sku]||0;var dos=d>0?wh/d:null;
-  return'<tr><td>'+skuCell(r.sku,r.name||nm(r.sku))+'</td>'
-    +'<td style="text-align:right">'+d.toFixed(2)+'</td>'
-    +'<td style="text-align:right">'+wh.toLocaleString()+'</td>'
-    +'<td class="col-dos">'+bar(dos)+dl(dos)+'</td></tr>';
+  return'<tr><td>'+skuCell(r.sku,r.name||nm(r.sku))+'</td>'+'<td style="text-align:right">'+d.toFixed(2)+'</td>'+'<td style="text-align:right">'+wh.toLocaleString()+'</td>'+'<td class="col-dos">'+bar(dos)+dl(dos)+'</td></tr>';
 }
 
 const CHANNEL_DEFS=[
   {id:'amz_us',label:'Amazon US (FBA)',color:'#1a5fa8',live:true,
    skus:()=>160,oosCount:()=>computeAlerts().amz_us.filter(r=>r.status==='OOS'||r.status==='Critical <7d').length,avgDOS:()=>avgDOS(AMZ_US,r=>r.total,r=>r.daily),atRisk:()=>atRisk(AMZ_US,r=>r.total,r=>r.daily),
    badge:()=>{const d=avgDOS(AMZ_US,r=>r.total,r=>r.daily);return d<30?'br':d<45?'by':'bg'},badgeLbl:()=>{const d=avgDOS(AMZ_US,r=>r.total,r=>r.daily);return d<30?'At risk':d<45?'Watch':'Healthy'},
-   html:function(f){var d=f==='oos'?AMZ_US.filter(function(r){return !r.daily||r.total/r.daily<7;}):f==='risk'?AMZ_US.filter(function(r){var x=r.daily?r.total/r.daily:null;return x&&x>=7&&x<30;}):AMZ_US;return buildTbl('amz-us',d,['sku','name'],amzRow,['SKU / Product','Daily','FBA avail','Inbound','Total FBA','DOS']);}},
+   html:()=>buildTbl('amz-us',AMZ_US,['sku','name'],amzRow,['SKU / Product','Daily (Flieber)','FBA available','Inbound to AMZ','Total FBA','DOS'])},
   {id:'amz_ca',label:'Amazon CA (FBA)',color:'#2176b5',live:true,
    skus:()=>44,oosCount:()=>computeAlerts().amz_ca.filter(r=>r.status==='OOS'||r.status==='Critical <7d').length,avgDOS:()=>avgDOS(AMZ_CA,r=>r.total,r=>r.daily),atRisk:()=>atRisk(AMZ_CA,r=>r.total,r=>r.daily),
    badge:()=>'bg',badgeLbl:()=>'Healthy',
-   html:function(f){var d=f==='oos'?AMZ_CA.filter(function(r){return !r.daily||r.total/r.daily<7;}):f==='risk'?AMZ_CA.filter(function(r){var x=r.daily?r.total/r.daily:null;return x&&x>=7&&x<30;}):AMZ_CA;return buildTbl('amz-ca',d,['sku','name'],amzRow,['SKU / Product','Daily','FBA avail','Inbound','Total FBA','DOS']);}},
+   html:()=>buildTbl('amz-ca',AMZ_CA,['sku','name'],amzRow,['SKU / Product','Daily (Flieber)','FBA available','Inbound to AMZ','Total FBA','DOS'])},
   {id:'shopify',label:'Shopify (DTC)',color:'#95bf47',live:true,
    skus:()=>202,oosCount:()=>computeAlerts().shopify.filter(r=>r.status==='OOS'||r.status==='Critical <7d').length,avgDOS:()=>null,atRisk:()=>Object.keys(D.shopify).filter(s=>{const d=D.shopify[s];return d>0&&(WH[s]||0)/d<30;}).length,
    badge:()=>'bg',badgeLbl:()=>'Via WH 240',
-   html:function(f){var rows=Object.entries(D.shopify).filter(function(e){return e[1]>0;}).sort(function(a,b){return b[1]-a[1];}).map(function(e){return{sku:e[0],daily_velocity:e[1]};});if(f==='oos')rows=rows.filter(function(r){return !(WH[r.sku]||0);});else if(f==='risk')rows=rows.filter(function(r){var dos=(WH[r.sku]||0)/r.daily_velocity;return dos>0&&dos<30;});return buildTbl('shopify',rows,['sku'],function(r){return flRow('shopify',r);},['SKU / Product','Daily','WH 240 on hand','DOS']);} },
+   html:function(){var rows=Object.entries(D.shopify).filter(function(e){return e[1]>0;}).sort(function(a,b){return b[1]-a[1];}).map(function(e){return{sku:e[0],daily_velocity:e[1]};});return buildTbl('shopify',rows,['sku'],function(r){return flRow('shopify',r);},['SKU / Product','Daily (Flieber)','WH 240 on hand','DOS']);} },
   {id:'chewy',label:'Chewy (Wholesale)',color:'#0066cc',live:true,
    skus:()=>44,oosCount:()=>0,avgDOS:()=>null,atRisk:()=>Object.keys(D.chewy).filter(s=>{const d=D.chewy[s];return d>0&&(WH[s]||0)/d<30;}).length,
    badge:()=>'bx',badgeLbl:()=>'No inv data',
-   html:function(f){var rows=Object.entries(D.chewy).filter(function(e){return e[1]>0;}).sort(function(a,b){return b[1]-a[1];}).map(function(e){return{sku:e[0],daily_velocity:e[1]};});if(f==='oos')rows=rows.filter(function(r){return !(WH[r.sku]||0);});else if(f==='risk')rows=rows.filter(function(r){var dos=(WH[r.sku]||0)/r.daily_velocity;return dos>0&&dos<30;});return buildTbl('chewy',rows,['sku'],function(r){return flRow('chewy',r);},['SKU / Product','Daily','WH 240 on hand','DOS']);} },
+   html:function(){var rows=Object.entries(D.chewy).filter(function(e){return e[1]>0;}).sort(function(a,b){return b[1]-a[1];}).map(function(e){return{sku:e[0],daily_velocity:e[1]};});return buildTbl('chewy',rows,['sku'],function(r){return flRow('chewy',r);},['SKU / Product','Daily (Flieber)','WH 240 on hand','DOS']);} },
   {id:'tiktok',label:'TikTok (FBT + Samples)',color:'#111',live:true,
    skus:()=>80,oosCount:()=>computeAlerts().tiktok.filter(r=>r.status==='OOS'||r.status==='Critical <7d').length,avgDOS:()=>avgDOS(TT.filter(r=>r.avail>0),r=>r.avail,r=>r.daily7),atRisk:()=>atRisk(TT.filter(r=>r.avail>0),r=>r.avail,r=>r.daily7),
    badge:()=>'by',badgeLbl:()=>'Mixed stock',
-   html:function(f){var rows=f==='oos'?TT.filter(function(r){return !r.avail;}):f==='risk'?TT.filter(function(r){var d=r.daily7?(r.avail||0)/r.daily7:null;return d&&d>0&&d<30;}):TT;return buildTbl('tiktok',rows,['sku','name'],ttRow,['SKU / Product','Daily','FBT avail','Inbound','Total FBT','DOS']); } },
+   html:()=>buildTbl('tiktok',TT,['sku','name'],ttRow,['SKU / Product','Daily (Flieber)','FBT available','Inbound','Total FBT','DOS'])},
   {id:'walmart',label:'Walmart 3P',color:'#0071ce',live:true,
-   skus:function(){return Object.keys(D.walmart).filter(function(s){return D.walmart[s]>0;}).length;},oosCount:()=>computeAlerts().walmart.filter(r=>r.status==='OOS'||r.status==='Critical <7d').length,avgDOS:()=>avgDOS(WM,r=>r.avail,r=>r.daily),atRisk:()=>atRisk(WM,r=>r.avail,r=>r.daily),
+   skus:()=>Object.keys(D.walmart).filter(s=>D.walmart[s]>0).length,oosCount:()=>computeAlerts().walmart.filter(r=>r.status==='OOS'||r.status==='Critical <7d').length,avgDOS:()=>avgDOS(WM,r=>r.avail,r=>r.daily),atRisk:()=>atRisk(WM,r=>r.avail,r=>r.daily),
    badge:()=>{const d=avgDOS(WM,r=>r.avail,r=>r.daily);return d<30?'br':d<45?'by':'bg'},badgeLbl:()=>{const d=avgDOS(WM,r=>r.avail,r=>r.daily);return d<30?'At risk':d<45?'Watch':'Healthy'},
-   html:function(f){var idx={};WM.forEach(function(r){idx[r.sku]=r;});var rows=Object.entries(D.walmart).filter(function(e){return e[1]>0;}).sort(function(a,b){return b[1]-a[1];}).map(function(e){var w=idx[e[0]]||{};return{sku:e[0],name:w.name||nm(e[0]),avail:w.avail||0,inbound:w.inbound||0,daily:e[1]};});if(f==='oos')rows=rows.filter(function(r){return(r.avail+r.inbound)===0;});else if(f==='risk')rows=rows.filter(function(r){var t=r.avail+r.inbound;var d=r.daily?t/r.daily:null;return d&&d>0&&d<30;});return buildTbl('walmart',rows,['sku','name'],wmRow,['SKU / Product','Daily','WMT avail','Inbound','Total WMT','DOS']);} },
+   html:function(){var idx={};WM.forEach(function(r){idx[r.sku]=r;});var rows=Object.entries(D.walmart).filter(function(e){return e[1]>0;}).sort(function(a,b){return b[1]-a[1];}).map(function(e){var w=idx[e[0]]||{};return{sku:e[0],name:w.name||nm(e[0]),avail:w.avail||0,inbound:w.inbound||0,daily:e[1]};});return buildTbl('walmart',rows,['sku','name'],wmRow,['SKU / Product','Daily (Flieber)','WMT avail','Inbound','Total WMT','DOS']);}},
   {id:'target',label:'Target+',color:'#cc0000',live:true,
    skus:()=>47,oosCount:()=>computeAlerts().target.filter(r=>r.status==='OOS'||r.status==='Critical <7d').length,avgDOS:()=>null,atRisk:()=>TGT.filter(r=>r.inv<10).length,
    badge:()=>{const r=TGT.filter(r=>r.inv<10).length;return r>3?'by':'bg'},badgeLbl:()=>{const r=TGT.filter(r=>r.inv<10).length;return r>0?r+' low stock':'Healthy'},
-   html:function(f){var rows=f==='oos'?TGT.filter(function(r){return !r.inv;}):f==='risk'?TGT.filter(function(r){var vel=D.target[r.sku]||0;var d=vel?(r.inv||0)/vel:null;return d&&d>0&&d<30;}):TGT;return buildTbl('target',rows,['sku','title'],tgtRow,['SKU / Product','Daily','DC Inventory','Inbound','Total','DOS']); } },
+   html:()=>buildTbl('target',TGT,['sku','title'],tgtRow,['SKU / Product','Daily (Flieber)','DC Inventory','Inbound','Total','DOS'])},
 ];
 
 
@@ -873,7 +853,7 @@ function renderScorecard(){
   const allocRisk=calcAlloc().filter(r=>!r.covered).length;
   document.getElementById('scorecard').innerHTML=`
     <div class="mc"><div class="mc-lbl">WH 240 sellable units</div><div class="mc-val" style="color:var(--blue)">${whTot.toLocaleString()}</div><div class="mc-sub"><span class="live-pill"><span class="live-dot"></span>Live BigQuery</span></div></div>
-    <div class="mc" style="cursor:pointer" onclick="document.querySelector('[data-tab=alerts]').click()"><div class="mc-lbl">At risk (DOS &lt;30d)</div><div class="mc-val" style="color:var(--red)">${risks}</div><div class="mc-sub" style="color:var(--blue)">click to view ↗</div></div>
+    <div class="mc"><div class="mc-lbl">At risk (DOS &lt;30d)</div><div class="mc-val" style="color:var(--red)">${risks}</div><div class="mc-sub">across all channels</div></div>
 `;
 }
 
@@ -1018,24 +998,15 @@ function renderCards(){
     </div>`;
   }).join('');
 }
-function openDrill(id,f){
-  var ch=CHANNEL_DEFS.find(function(c){return c.id===id;});if(!ch)return;
-  var oos=ch.oosCount();var risk=ch.atRisk();
-  var aA=f?'':'active';var oA=f==='oos'?'active':'';var rA=f==='risk'?'active':'';
-  var oSty=f==='oos'?'background:var(--red);color:#fff;border-color:var(--red)':'';
-  var rSty=f==='risk'?'background:var(--amber);color:#fff;border-color:var(--amber)':'';
-  var fb='<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">'
-    +'<button data-id="'+id+'" data-f="" class="dfb '+aA+'" onclick="openDrill(this.dataset.id)">All SKUs</button>'
-    +'<button data-id="'+id+'" data-f="oos" class="dfb '+oA+'" style="'+oSty+'" onclick="openDrill(this.dataset.id,this.dataset.f)">⚠ OOS/Critical ('+oos+')</button>'
-    +'<button data-id="'+id+'" data-f="risk" class="dfb '+rA+'" style="'+rSty+'" onclick="openDrill(this.dataset.id,this.dataset.f)">At Risk &lt;30d ('+risk+')</button>'
-    +'</div>';
+function openDrill(id){
+  const ch=CHANNEL_DEFS.find(c=>c.id===id);if(!ch)return;
   document.getElementById('drill-ttl').textContent=ch.label+' — SKU detail';
-  document.getElementById('drill-body').innerHTML=fb+ch.html(f);
-  initCh(id.replace('_','-'),f);
-  document.querySelectorAll('.ch-card').forEach(function(c){c.classList.remove('active');});
+  document.getElementById('drill-body').innerHTML=ch.html();
+  initCh(id.replace('_','-'));
+  document.querySelectorAll('.ch-card').forEach(c=>c.classList.remove('active'));
   document.getElementById('card-'+id).classList.add('active');
   document.getElementById('drill-panel').style.display='block';
-  setTimeout(function(){document.getElementById('drill-panel').scrollIntoView({behavior:'smooth',block:'nearest'});},60);
+  setTimeout(()=>document.getElementById('drill-panel').scrollIntoView({behavior:'smooth',block:'nearest'}),60);
 }
 function closeDrill(){document.getElementById('drill-panel').style.display='none';document.querySelectorAll('.ch-card').forEach(c=>c.classList.remove('active'));}
 
@@ -1067,23 +1038,23 @@ function handleFile(inp,ch){
   function parse(rows){
     if(!rows||rows.length<2){st.textContent='No data found.';st.style.color='var(--red)';return;}
     var hdr=rows[0].map(function(h){return String(h||'').toLowerCase().trim();});
-    var data=rows.slice(1).filter(function(r){return r.some(function(c){return c!=='';});});
+    var data=rows.slice(1).filter(function(r){return r.some(function(c){return String(c).trim()!=='';});});
     try{
       if(ch==='wm'){
         var iS=ci(hdr,['sku','partner sku','item number','item']),iA=ci(hdr,['avail','available','qty','on hand']),iI=ci(hdr,['inbound','incoming','on order']),iD=ci(hdr,['daily','velocity','sales']),iN=ci(hdr,['name','title','product','description']);
         WM.length=0;
         data.forEach(function(r){var s=String(r[iS<0?0:iS]||'').trim();if(!s)return;var av=parseFloat(r[iA<0?1:iA])||0,ib=parseFloat(r[iI<0?2:iI])||0,d=parseFloat(r[iD<0?3:iD])||0,n=iN>=0?String(r[iN]||'').trim():nm(s);var t=av+ib,dos=d>0?Math.round(t/d):999,status=t===0?'OOS':dos<30?'At Risk':'In Stock';WM.push({sku:s,name:n,avail:av,inbound:ib,daily:d,dos:dos,status:status});});
-        updateWMPool();renderAlloc();st.textContent='✓ '+WM.length+' SKUs from '+file.name;st.style.color='var(--green)';
+        updateWMPool();renderAlloc();st.textContent='✓ '+WM.length+' SKUs loaded from '+file.name;st.style.color='var(--green)';
       }else if(ch==='tt'){
         var iS=ci(hdr,['sku','item','product']),iA=ci(hdr,['avail','available','fbt','qty','on hand']),iI=ci(hdr,['inbound','incoming','on order']),iD=ci(hdr,['daily','l7d','7 day','velocity','sales']),iN=ci(hdr,['name','title','product name']);
         TT.length=0;
         data.forEach(function(r){var s=String(r[iS<0?0:iS]||'').trim();if(!s)return;var av=parseFloat(r[iA<0?1:iA])||0,ib=parseFloat(r[iI<0?2:iI])||0,d=parseFloat(r[iD<0?3:iD])||0,n=iN>=0?String(r[iN]||'').trim():nm(s);TT.push({sku:s,name:n,avail:av,inbound:ib,daily7:d,dos:d>0?Math.round((av+ib)/d):null});});
-        updateTTPool();renderAlloc();st.textContent='✓ '+TT.length+' SKUs from '+file.name;st.style.color='var(--green)';
+        updateTTPool();renderAlloc();st.textContent='✓ '+TT.length+' SKUs loaded from '+file.name;st.style.color='var(--green)';
       }else if(ch==='tgt'){
         var iT=ci(hdr,['tcin','id']),iS=ci(hdr,['sku','partner sku','item number']),iTi=ci(hdr,['title','product','name','description']),iInv=ci(hdr,['inv','inventory','available','qty','dc']),iPr=ci(hdr,['price']),iIb=ci(hdr,['inbound','incoming','on order']);
         TGT.length=0;
         data.forEach(function(r){var s=String(r[iS<0?1:iS]||'').trim();if(!s)return;var tc=parseInt(r[iT<0?0:iT])||0,ti=String(r[iTi<0?2:iTi]||'').trim()||nm(s),inv=parseFloat(r[iInv<0?3:iInv])||0,ib=iIb>=0?parseFloat(r[iIb])||0:0,pr=parseFloat(r[iPr<0?4:iPr])||0;TGT.push({tcin:tc,sku:s,title:ti,inv:inv,inbound:ib,price:pr});});
-        updateTGTPool();renderAlloc();st.textContent='✓ '+TGT.length+' SKUs from '+file.name;st.style.color='var(--green)';
+        updateTGTPool();renderAlloc();st.textContent='✓ '+TGT.length+' SKUs loaded from '+file.name;st.style.color='var(--green)';
       }
     }catch(err){st.textContent='Error: '+err.message;st.style.color='var(--red)';}
   }
